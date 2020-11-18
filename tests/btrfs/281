@@ -1,0 +1,157 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2020 YOUR NAME HERE.  All Rights Reserved.
+#
+# FS QA Test 281
+#
+# what am I here for?
+#
+seq=`basename $0`
+seqres=$RESULT_DIR/$seq
+echo "QA output created by $seq"
+
+here=`pwd`
+tmp=/tmp/$$
+status=1	# failure is the default!
+trap "_cleanup; exit \$status" 0 1 2 3 15
+
+_cleanup()
+{
+	cd /
+	rm -f $tmp.*
+}
+
+# get standard environment, filters and checks
+. ./common/rc
+. ./common/filter
+
+# remove previous $seqres.full before test
+rm -f $seqres.full
+
+# real QA test starts here
+
+# Modify as appropriate.
+_supported_fs btrfs
+_require_scratch
+_require_btrfs_command inspect-internal dump-super
+_require_btrfs_fs_feature free_space_tree
+
+grep_opt() {
+	local opt=$1
+	shift
+	_fs_options $SCRATCH_DEV | tr ',' '\n' | egrep $@ "^$opt$" > /dev/null
+}
+
+expect_opt() {
+	local opt=$1
+	grep_opt $opt || _fail "missing $opt mount option"
+}
+
+expect_no_opt() {
+	local opt=$1
+	grep_opt $opt && _fail "unexpected $opt mount option"
+}
+
+expect_fst() {
+	_btrfs_free_space_tree_enabled | grep enabled > /dev/null || _fail "missing enabled fst"
+}
+
+expect_no_fst() {
+	_btrfs_free_space_tree_enabled | grep disabled > /dev/null || _fail "unexpected enabled fst"
+}
+
+expect_no() {
+	expect_opt nospace_cache
+	expect_no_opt space_cache
+	expect_no_opt space_cache=v2
+	expect_no_fst
+	expect_no_opt clear_cache
+}
+
+expect_v1() {
+	expect_no_opt nospace_cache
+	expect_opt space_cache
+	expect_no_opt space_cache=v2
+	expect_no_fst
+	expect_no_opt clear_cache
+}
+
+expect_v2() {
+	expect_no_opt nospace_cache
+	expect_no_opt space_cache
+	expect_opt space_cache=v2
+	expect_fst
+	expect_no_opt clear_cache
+}
+
+# Scenarios:
+# (non remount scenarios are covered by btrfs/131)
+# nospace_cache -> space_cache=v1 via ro->rw remount
+# nospace_cache -> space_cache=v2 via ro->rw remount
+# space_cache=v1 -> space_cache=v2 via rw->rw remount (no change)
+# space_cache=v1 -> space_cache=v2 via ro->ro remount (no change)
+# space_cache=v1 -> space_cache=v2 via ro->rw remount
+# space_cache=v1 -> nospace_cache via rw->rw remount (?)
+# space_cache=v1 -> nospace_cache via ro->ro remount (?)
+# space_cache=v1 -> nospace_cache via ro->rw remount
+
+# TODO
+# v1 -> no rw->rw
+# no -> v1 rw->rw
+# mount option not applied, but does the behavior change "truly"??
+
+_scratch_mkfs >/dev/null 2>&1
+_scratch_mount -o clear_cache,nospace_cache
+expect_no
+echo "no -> v1 via rw->rw remount"
+_scratch_remount space_cache=v1
+expect_v1
+echo "v1 -> no via rw->rw remount"
+_scratch_remount rw,nospace_cache
+expect_no
+echo "no -> v1 via ro->rw remount"
+_scratch_remount ro
+_scratch_remount rw,space_cache=v1
+expect_v1
+echo "v1 -> no via ro->rw remount"
+_scratch_remount ro
+_scratch_remount rw,nospace_cache
+expect_no
+echo "no -> v2 via rw->rw remount (no change)"
+_scratch_remount space_cache=v2
+expect_no
+echo "no -> v2 via ro->rw remount"
+_scratch_remount ro
+_scratch_remount rw,space_cache=v2
+expect_v2
+echo "v2 -> v1 via rw->rw remount (no change)"
+_scratch_remount clear_cache,space_cache=v1
+expect_v2
+echo "v2 -> v1 via ro->rw remount"
+_scratch_remount ro
+_scratch_remount clear_cache,space_cache=v1
+expect_v1
+echo "v1 -> v2 via rw->rw remount (no change)"
+_scratch_remount space_cache=v2
+expect_v1
+# todo boris fixme to a generic dd
+dd if=/dev/zero of=/$SCRATCH_MNT/foo bs=1M count=10 2>/dev/null
+echo "v1 -> v2 via ro->ro remount (no change)"
+_scratch_remount ro
+_scratch_remount ro,space_cache=v2
+expect_v1
+echo "v1 -> v2 via ro->rw remount"
+_scratch_remount rw,space_cache=v2
+expect_v2
+echo "v2 -> no via ro->rw remount"
+_scratch_remount ro
+_scratch_remount rw,clear_cache,nospace_cache
+expect_no
+
+# optional stuff if your test has verbose output to help resolve problems
+#echo
+#echo "If failure, check $seqres.full (this) and $seqres.full.ok (reference)"
+
+# success, all done
+status=0
+exit
