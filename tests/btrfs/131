@@ -51,17 +51,6 @@ mkfs_v2()
 	_scratch_unmount
 }
 
-check_fst_compat()
-{
-	compat_ro="$($BTRFS_UTIL_PROG inspect-internal dump-super "$SCRATCH_DEV" | \
-		     sed -rn 's/^compat_ro_flags\s+(.*)$/\1/p')"
-	if ((compat_ro & 0x1)); then
-		echo "free space tree is enabled"
-	else
-		echo "free space tree is disabled"
-	fi
-}
-
 # Mount options might interfere.
 export MOUNT_OPTIONS=""
 
@@ -75,19 +64,19 @@ export MOUNT_OPTIONS=""
 mkfs_v1
 echo "Using free space cache"
 _scratch_mount -o space_cache=v1
-check_fst_compat
+_btrfs_free_space_tree_enabled
 _scratch_unmount
 
 mkfs_v1
 echo "Enabling free space tree"
 _scratch_mount -o space_cache=v2
-check_fst_compat
+_btrfs_free_space_tree_enabled
 _scratch_unmount
 
 mkfs_v1
 echo "Disabling free space cache and enabling free space tree"
 _scratch_mount -o clear_cache,space_cache=v2
-check_fst_compat
+_btrfs_free_space_tree_enabled
 _scratch_unmount
 
 # When the free space tree is enabled:
@@ -105,32 +94,32 @@ _try_scratch_mount -o space_cache=v1 >/dev/null 2>&1 || echo "mount failed"
 mkfs_v2
 echo "Mounting existing free space tree"
 _scratch_mount
-check_fst_compat
+_btrfs_free_space_tree_enabled
 _scratch_unmount
 _scratch_mount -o space_cache=v2
-check_fst_compat
+_btrfs_free_space_tree_enabled
 _scratch_unmount
 
 mkfs_v2
 echo "Recreating free space tree"
 _scratch_mount -o clear_cache,space_cache=v2
-check_fst_compat
+_btrfs_free_space_tree_enabled
 _scratch_unmount
 mkfs_v2
 _scratch_mount -o clear_cache
-check_fst_compat
+_btrfs_free_space_tree_enabled
 _scratch_unmount
 
 mkfs_v2
 echo "Disabling free space tree"
 _scratch_mount -o clear_cache,nospace_cache
-check_fst_compat
+_btrfs_free_space_tree_enabled
 _scratch_unmount
 
 mkfs_v2
 echo "Reverting to free space cache"
 _scratch_mount -o clear_cache,space_cache=v1
-check_fst_compat
+_btrfs_free_space_tree_enabled
 _scratch_unmount
 
 # success, all done

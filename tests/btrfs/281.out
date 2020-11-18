@@ -1,0 +1,13 @@
+QA output created by 281
+no -> v1 via rw->rw remount
+v1 -> no via rw->rw remount
+no -> v1 via ro->rw remount
+v1 -> no via ro->rw remount
+no -> v2 via rw->rw remount (no change)
+no -> v2 via ro->rw remount
+v2 -> v1 via rw->rw remount (no change)
+v2 -> v1 via ro->rw remount
+v1 -> v2 via rw->rw remount (no change)
+v1 -> v2 via ro->ro remount (no change)
+v1 -> v2 via ro->rw remount
+v2 -> no via ro->rw remount

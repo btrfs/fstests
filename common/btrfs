@@ -411,3 +411,15 @@ _btrfs_forget_or_module_reload()
 
 	_reload_fs_module "btrfs"
 }
+
+# print whether or not the free space tree is enabled on the scratch dev
+_btrfs_free_space_tree_enabled()
+{
+	compat_ro="$($BTRFS_UTIL_PROG inspect-internal dump-super "$SCRATCH_DEV" | \
+		     sed -rn 's/^compat_ro_flags\s+(.*)$/\1/p')"
+	if ((compat_ro & 0x1)); then
+		echo "free space tree is enabled"
+	else
+		echo "free space tree is disabled"
+	fi
+}
