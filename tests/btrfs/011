@@ -82,7 +82,7 @@ fill_scratch()
 	done > /dev/null 2>> $seqres.full
 
 	# Ensure we have enough data so that dev-replace would take at least
-	# 2 * $wait_time, allowing we cancel the running replace.
+	# 4 * $wait_time, allowing we cancel the running replace.
 	# Some extra points:
 	# - Use XFS_IO_PROG instead of dd
 	#   fstests wraps dd, making it pretty hard to kill the real dd pid
@@ -93,7 +93,7 @@ fill_scratch()
 	$XFS_IO_PROG -f -d -c "pwrite -b 64k 0 1E" "$SCRATCH_MNT/t_filler" &>\
 		$tmp.filler_result &
 	filler_pid=$!
-	sleep $((2 * $wait_time))
+	sleep $((4 * $wait_time))
 	kill -KILL $filler_pid &> /dev/null
 	wait $filler_pid &> /dev/null
 
