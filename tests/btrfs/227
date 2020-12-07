@@ -1,0 +1,99 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2020 Facebook.  All Rights Reserved.
+#
+# FS QA Test 227
+#
+# A test to exercise the various failure scenarios for -o rescue=all.  This is
+# mainly a regression test for
+#
+#   btrfs: introduce rescue=all
+#
+# We simply corrupt a bunch of core roots and validate that it works the way we
+# expect it to.
+#
+seq=`basename $0`
+seqres=$RESULT_DIR/$seq
+echo "QA output created by $seq"
+
+here=`pwd`
+tmp=/tmp/$$
+status=1	# failure is the default!
+trap "_cleanup; exit \$status" 0 1 2 3 15
+
+_cleanup()
+{
+	cd /
+	rm -f $tmp.*
+}
+
+_generate_fs()
+{
+	# We need single so we don't just read the duplicates
+	_scratch_mkfs -m single -d single > $seqres.full 2>&1
+	_scratch_mount
+	$XFS_IO_PROG -f -c "pwrite -S 0xab 0 1M" $SCRATCH_MNT/foo | \
+		_filter_xfs_io
+	md5sum $SCRATCH_MNT/foo | _filter_scratch
+	_scratch_unmount
+}
+
+_clear_root()
+{
+	# Grab the bytenr for the root by dumping the tree roots, clearing up to
+	# the key so our first column is the bytenr.  With a normal device with
+	# single should mean that physical == logical
+	local bytenr=$($BTRFS_UTIL_PROG inspect-internal dump-tree -r \
+		$SCRATCH_DEV | grep "$1" | sed 's/.*) //g'| \
+		awk '{ print $1 }')
+	dd if=/dev/zero of=$SCRATCH_DEV bs=1 seek=$bytenr count=4096 | \
+		_filter_dd
+}
+
+_test_failure()
+{
+	_try_scratch_mount $* > /dev/null 2>&1
+	[ $? -eq 0 ] && _fail "We should have failed to mount"
+}
+
+_test_success()
+{
+	_generate_fs
+	_clear_root "$1"
+	_test_failure
+	_scratch_mount -o rescue=all,ro
+	md5sum $SCRATCH_MNT/foo | _filter_scratch
+	_scratch_unmount
+}
+
+# get standard environment, filters and checks
+. ./common/rc
+. ./common/filter
+
+# remove previous $seqres.full before test
+rm -f $seqres.full
+
+# real QA test starts here
+
+_supported_fs generic
+_supported_os Linux
+_require_test
+_require_scratch_mountopt "rescue=all,ro"
+
+# Test with the roots that should definitely pass
+_test_success "extent tree"
+_test_success "checksum tree"
+_test_success "uuid tree"
+_test_success "data reloc"
+
+# Now test the roots that will definitely fail
+_generate_fs
+_clear_root "fs tree"
+_test_failure -o rescue=all,ro
+
+# We have to re-mkfs the fs because otherwise the post-test fsck will blow up
+_scratch_mkfs > /dev/null 2>&1
+
+# success, all done
+status=0
+exit
