@@ -1,0 +1,30 @@
+QA output created by 227
+wrote 1048576/1048576 bytes at offset 0
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+096003817ad2638000a6836e55866697  SCRATCH_MNT/foo
+4096+0 records in
+4096+0 records out
+096003817ad2638000a6836e55866697  SCRATCH_MNT/foo
+wrote 1048576/1048576 bytes at offset 0
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+096003817ad2638000a6836e55866697  SCRATCH_MNT/foo
+4096+0 records in
+4096+0 records out
+096003817ad2638000a6836e55866697  SCRATCH_MNT/foo
+wrote 1048576/1048576 bytes at offset 0
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+096003817ad2638000a6836e55866697  SCRATCH_MNT/foo
+4096+0 records in
+4096+0 records out
+096003817ad2638000a6836e55866697  SCRATCH_MNT/foo
+wrote 1048576/1048576 bytes at offset 0
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+096003817ad2638000a6836e55866697  SCRATCH_MNT/foo
+4096+0 records in
+4096+0 records out
+096003817ad2638000a6836e55866697  SCRATCH_MNT/foo
+wrote 1048576/1048576 bytes at offset 0
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+096003817ad2638000a6836e55866697  SCRATCH_MNT/foo
+4096+0 records in
+4096+0 records out
