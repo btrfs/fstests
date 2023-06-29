@@ -531,6 +531,17 @@ _get_encryption_file_nonce()
 				found = 0;
 			}'
 		;;
+	btrfs)
+		# Retrieve the fscrypt context for an inode as a hex string.
+		# btrfs prints these like:
+		#        item 14 key ($inode FSCRYPT_CTXT_ITEM 0) itemoff 15491 itemsize 40
+		#                value: 02010400000000008fabf3dd745d41856e812458cd765bf0140f41d62853f4c0351837daff4dcc8f
+
+		$BTRFS_UTIL_PROG inspect-internal dump-tree $device | \
+			grep -A 1 "key ($inode FSCRYPT_CTXT_ITEM 0)" | \
+			grep --only-matching 'value: [[:xdigit:]]\+' | \
+			tr -d ' \n' | tail -c 32
+		;;
 	*)
 		_fail "_get_encryption_file_nonce() isn't implemented on $FSTYP"
 		;;
@@ -549,6 +560,23 @@ _get_encryption_data_nonce()
 	case $FSTYP in
 	ext4|f2fs)
 		_get_encryption_file_nonce $device $inode
+		;;
+	btrfs)
+		# Retrieve the encryption IV of the first file extent in an inode as a hex
+		# string. btrfs prints the file extents (for simple unshared
+		# inodes) like:
+		#         item 21 key ($inode EXTENT_DATA 0) itemoff 2534 itemsize 69
+		#                generation 7 type 1 (regular)
+                #		 extent data disk byte 5304320 nr 1048576
+                #		 extent data offset 0 nr 1048576 ram 1048576
+                #		 extent compression 0 (none)
+                #		 extent encryption 161 ((1, 40: context 0201040200000000116a77667261d7422a4b1ed8c427e685edb7a0d370d0c9d40030333033333330))
+
+
+		$BTRFS_UTIL_PROG inspect-internal dump-tree $device | \
+			grep -A 5 "key ($inode EXTENT_DATA 0)" | \
+			grep --only-matching 'context [[:xdigit:]]\+' | \
+			tr -d ' \n' | tail -c 32
 		;;
 	*)
 		_fail "_get_encryption_data_nonce() isn't implemented on $FSTYP"
@@ -571,6 +599,9 @@ _require_get_encryption_nonce_support()
 		# (https://sourceforge.net/p/linux-f2fs/mailman/message/36648640/).
 		# Otherwise the xattr is incorrectly parsed as v1.  But just let
 		# the test fail in that case, as it was an f2fs-tools bug...
+		;;
+	btrfs)
+		_require_command "$BTRFS_UTIL_PROG" btrfs
 		;;
 	*)
 		_notrun "_get_encryption_*nonce() isn't implemented on $FSTYP"
