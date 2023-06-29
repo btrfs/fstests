@@ -33,6 +33,11 @@ ext_sz=$((128 * m))
 limit_nr=8
 limit=$(($ext_sz * $limit_nr))
 
+_scratch_mkfs >> $seqres.full
+_scratch_mount
+_qgroup_mode $SCRATCH_MNT | grep 'squota' && _notrun "test relies on starting without simple quotas enabled"
+_scratch_unmount
+
 get_qgroup_usage()
 {
 	local qgroupid=$1
