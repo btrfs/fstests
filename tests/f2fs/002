@@ -129,7 +129,7 @@ blocklist=$(_get_ciphertext_block_list $file)
 _scratch_unmount
 
 echo -e "\n# Getting file's encryption nonce"
-nonce=$(_get_encryption_nonce $SCRATCH_DEV $inode)
+nonce=$(_get_encryption_data_nonce $SCRATCH_DEV $inode)
 
 echo -e "\n# Dumping the file's raw data"
 _dump_ciphertext_blocks $SCRATCH_DEV $blocklist > $tmp.raw

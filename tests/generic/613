@@ -68,10 +68,10 @@ echo -e "\n# Getting encryption nonces from inodes"
 echo -n > $tmp.nonces_hex
 echo -n > $tmp.nonces_bin
 for inode in "${inodes[@]}"; do
-	nonce=$(_get_encryption_nonce $SCRATCH_DEV $inode)
+	nonce=$(_get_encryption_data_nonce $SCRATCH_DEV $inode)
 	if (( ${#nonce} != 32 )) || [ -n "$(echo "$nonce" | tr -d 0-9a-fA-F)" ]
 	then
-		_fail "Expected nonce to be 16 bytes (32 hex characters), but got \"$nonce\""
+		_fail "Expected nonce for inode $inode to be 16 bytes (32 hex characters), but got \"$nonce\""
 	fi
 	echo $nonce >> $tmp.nonces_hex
 	echo -ne "$(echo $nonce | sed 's/[0-9a-fA-F]\{2\}/\\x\0/g')" \
