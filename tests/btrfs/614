@@ -1,0 +1,76 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2023 Meta Platforms, Inc.  All Rights Reserved.
+#
+# FS QA Test 614
+#
+# Try taking a snapshot of an encrypted subvolume. Make sure the snapshot is
+# still readable. Rewrite part of the subvol with the same data; make sure it's
+# still readable.
+#
+. ./common/preamble
+_begin_fstest auto encrypt
+
+# Import common functions.
+. ./common/encrypt
+. ./common/filter
+
+# real QA test starts here
+_supported_fs btrfs
+
+_require_test
+_require_scratch
+_require_scratch_encryption -v 2
+_require_command "$KEYCTL_PROG" keyctl
+
+_scratch_mkfs_encrypted &>> $seqres.full
+_scratch_mount
+
+udir=$SCRATCH_MNT/reference
+dir=$SCRATCH_MNT/subvol
+dir2=$SCRATCH_MNT/subvol2
+$BTRFS_UTIL_PROG subvolume create $dir >> $seqres.full
+mkdir $udir
+
+_set_encpolicy $dir $TEST_KEY_IDENTIFIER
+_add_enckey $SCRATCH_MNT "$TEST_RAW_KEY"
+
+# get files with lots of extents by using backwards writes.
+for j in `seq 0 50`; do
+	for i in `seq 20 -1 1`; do
+		$XFS_IO_PROG -f -d -c "pwrite $(($i * 4096)) 4096" \
+		$dir/foo-$j >> $seqres.full | _filter_xfs_io
+		$XFS_IO_PROG -f -d -c "pwrite $(($i * 4096)) 4096" \
+		$udir/foo-$j >> $seqres.full | _filter_xfs_io
+	done
+done
+
+$BTRFS_UTIL_PROG subvolume snapshot $dir $dir2 | _filter_scratch
+
+_scratch_remount
+_add_enckey $SCRATCH_MNT "$TEST_RAW_KEY"
+sleep 30
+echo "Diffing $dir and $dir2"
+diff $dir $dir2
+
+echo "Rewriting $dir2 partly"
+# rewrite half of each file in the snapshot
+for j in `seq 0 50`; do
+	for i in `seq 10 -1 1`; do
+		$XFS_IO_PROG -f -d -c "pwrite $(($i * 4096)) 4096" \
+		$dir2/foo-$j >> $seqres.full | _filter_xfs_io
+	done
+done
+
+echo "Diffing $dir and $dir2"
+diff $dir $dir2
+
+echo "Dropping key and diffing"
+_rm_enckey $SCRATCH_MNT $TEST_KEY_IDENTIFIER
+diff $dir $dir2 |& _filter_scratch | _filter_nokey_filenames
+
+$BTRFS_UTIL_PROG subvolume delete $dir > /dev/null 2>&1
+
+# success, all done
+status=0
+exit
