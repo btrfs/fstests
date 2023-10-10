@@ -1,7 +1,7 @@
-QA output created by 613
+QA output created by 735
 
 # Adding encryption key
-Added encryption key with descriptor 0000111122223333
+Added encryption key with identifier 69b2f6edeee720cce0577937eb8a6751
 
 # Creating encrypted files and directories
 
@@ -11,5 +11,4 @@ Added encryption key with descriptor 0000111122223333
 Listing non-unique nonces:
 
 # Verifying randomness of nonces
-Uncompressed size is 1600 bytes
 Nonces are incompressible, as expected
