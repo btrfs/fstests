@@ -19,3 +19,5 @@ generic/476
 # mtime not preserved, expected: 1705082371 got: 1704844056
 # ctime not preserved, expected: 1705082371 got: 1704844056
 btrfs/236
+# doesnt pass on xfs or btrfs
+generic/730
