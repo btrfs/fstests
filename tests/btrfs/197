@@ -32,6 +32,7 @@ _require_scratch
 _require_scratch_dev_pool 5
 # Zoned btrfs only supports SINGLE profile
 _require_non_zoned_device ${SCRATCH_DEV}
+_require_btrfs_fs_feature raid56
 
 workout()
 {
