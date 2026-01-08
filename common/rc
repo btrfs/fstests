@@ -6133,6 +6133,22 @@ _require_file_attr_special()
 	fi
 }
 
+# Require filesystem to accomodate enough blocks in a file
+_require_max_file_range_blocks()
+{
+	local blocks=$1
+
+	case $FSTYP in
+	f2fs)
+		if [ $blocks -gt 1057053439 ]; then
+			_notrun "$blocks blocks per file not supported on $FSTYP"
+		fi
+		;;
+	*)
+		;;
+	esac
+}
+
 ################################################################################
 # make sure this script returns success
 /bin/true
