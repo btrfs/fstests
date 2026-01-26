@@ -1,0 +1,4 @@
+QA output created by 788
+
+# Using truncate(2) on a verity file fails
+truncate: Operation not permitted

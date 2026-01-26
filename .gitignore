@@ -212,6 +212,7 @@ tags
 /src/dio-writeback-race
 /src/unlink-fsync
 /src/file_attr
+/src/truncate
 
 # Symlinked files
 /tests/generic/035.out

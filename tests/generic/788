@@ -1,0 +1,38 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 Christoph Hellwig.
+#
+# FS QA Test 788
+#
+# Test that truncate(2) is blocked on fsverity files.
+#
+. ./common/preamble
+_begin_fstest auto quick verity
+
+_cleanup()
+{
+	cd /
+	_restore_fsverity_signatures
+	rm -f $tmp.*
+}
+
+. ./common/filter
+. ./common/verity
+
+_require_scratch_verity
+_require_test_program "truncate"
+
+_disable_fsverity_signatures
+
+_scratch_mkfs_verity &>> $seqres.full
+_scratch_mount
+
+fsv_file=$SCRATCH_MNT/file.fsv
+
+_fsv_scratch_begin_subtest "Using truncate(2) on a verity file fails"
+_fsv_create_enable_file $fsv_file
+$here/src/truncate $fsv_file
+
+# success, all done
+status=0
+exit
