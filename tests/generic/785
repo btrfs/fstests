@@ -27,7 +27,7 @@ _require_scratch
 _require_dm_target flakey
 _require_fssum
 
-[ "$FSTYP" = "btrfs" ] && _fixed_by_kernel_commit xxxxxxxxxxxx \
+[ "$FSTYP" = "btrfs" ] && _fixed_by_kernel_commit 5630f7557de6 \
 	"btrfs: do not skip logging new dentries when logging a new name"
 
 _scratch_mkfs >>$seqres.full 2>&1 || _fail "mkfs failed"

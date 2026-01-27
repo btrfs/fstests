@@ -25,7 +25,7 @@ _cleanup()
 _require_scratch
 _require_dm_target flakey
 
-[ "$FSTYP" = "btrfs" ] && _fixed_by_kernel_commit xxxxxxxxxxxx \
+[ "$FSTYP" = "btrfs" ] && _fixed_by_kernel_commit 266273eaf4d9 \
 	"btrfs: don't log conflicting inode if it's a dir moved in the current transaction"
 
 _scratch_mkfs >>$seqres.full 2>&1 || _fail "mkfs failed"
