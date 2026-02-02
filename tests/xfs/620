@@ -55,8 +55,11 @@ file5="file5"
 
 echo ""
 
-# Create files
-touch $SCRATCH_MNT/$testfolder1/$file4
+# Create a file with a 53k xattr to force the attr structure out of short
+# format.  Parent pointer operations on a shortform attr structure can skip the
+# attr intent mechanism and therefore do not trigger the larp knob.
+truncate -s 53535 $SCRATCH_MNT/$testfolder1/$file4
+$ATTR_PROG -s x $SCRATCH_MNT/$testfolder1/$file4 < $SCRATCH_MNT/$testfolder1/$file4 &>/dev/null
 _xfs_verify_parent "$testfolder1" "$file4" "$testfolder1/$file4"
 
 # Inject error
