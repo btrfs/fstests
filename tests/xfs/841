@@ -85,9 +85,12 @@ _create_proto_dir()
 	$here/src/af_unix "$PROTO_DIR/socket" 2> /dev/null || true
 
 	# Block device (requires root)
-	mknod "$PROTO_DIR/blockdev" b 1 0 2> /dev/null || true
+	# Uses the device for $TEST_DIR to ensure it always exists.
+	mknod "$PROTO_DIR/blockdev" b $(stat -c '%Hd %Ld' $TEST_DIR) \
+		2> /dev/null || true
 
 	# Character device (requires root)
+	# Uses /dev/null, which should always exist
 	mknod "$PROTO_DIR/chardev" c 1 3 2> /dev/null || true
 }
 
