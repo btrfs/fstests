@@ -163,17 +163,20 @@ do_mmap_tests()
 	new_filelen=$(_get_filesize $test_file)
 	map_len=$(_round_up_to_page_boundary $new_filelen)
 	csum_orig="$(_md5_checksum $test_file)"
-	_mread $test_file 0 $map_len >> $seqres.full  2>$tmp.err
+	_mread $test_file 0 $map_len > $tmp.out 2>$tmp.err
 	if grep -q 'Bus error' $tmp.err; then
 		failed=1
+		cat $tmp.out >> $seqres.full
 		cat $tmp.err
 		echo "Not expecting SIGBUS when reading up to page boundary"
 	fi
 
 	# This should just work
-	_mread $test_file 0 $map_len >> $seqres.full  2>$tmp.err
+	_mread $test_file 0 $map_len > $tmp.out 2>$tmp.err
 	if [[ $? -ne 0 ]]; then
 		let failed=$failed+1
+		cat $tmp.out >> $seqres.full
+		cat $tmp.err
 		echo "mmap() read up to page boundary should work"
 	fi
 
@@ -205,9 +208,11 @@ do_mmap_tests()
 	fi
 
 	# Now let's go beyond the allowed mmap() page boundary
-	_mread $test_file 0 $((map_len + 10)) $((map_len + 10)) >> $seqres.full  2>$tmp.err
+	_mread $test_file 0 $((map_len + 10)) $((map_len + 10)) > $tmp.out 2>$tmp.err
 	if ! grep -q 'Bus error' $tmp.err; then
 		let failed=$failed+1
+		cat $tmp.out >> $seqres.full
+		cat $tmp.err
 		echo "Expected SIGBUS when mmap() reading beyond page boundary"
 	fi
 
