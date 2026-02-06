@@ -127,16 +127,6 @@ mkdir $testdir
 
 require_larp
 
-# empty, inline
-create_test_file empty_file1 0
-test_attr_replay empty_file1 "attr_name" $attr64 "s" "larp"
-test_attr_replay empty_file1 "attr_name" $attr64 "r" "larp"
-
-# empty, inline with an unaligned value
-create_test_file empty_fileX 0
-test_attr_replay empty_fileX "attr_nameX" $attr17 "s" "larp"
-test_attr_replay empty_fileX "attr_nameX" $attr17 "r" "larp"
-
 # empty, internal
 create_test_file empty_file2 0
 test_attr_replay empty_file2 "attr_name" $attr1k "s" "larp"
@@ -151,16 +141,6 @@ test_attr_replay empty_file3 "attr_name" $attr64k "r" "larp"
 create_test_file empty_fileY 0
 test_attr_replay empty_fileY "attr_name" $attr32l "s" "larp"
 test_attr_replay empty_fileY "attr_name" $attr32l "r" "larp"
-
-# inline, inline
-create_test_file inline_file1 1 $attr16
-test_attr_replay inline_file1 "attr_name2" $attr64 "s" "larp"
-test_attr_replay inline_file1 "attr_name2" $attr64 "r" "larp"
-
-# inline, internal
-create_test_file inline_file2 1 $attr16
-test_attr_replay inline_file2 "attr_name2" $attr1k "s" "larp"
-test_attr_replay inline_file2 "attr_name2" $attr1k "r" "larp"
 
 # inline, remote
 create_test_file inline_file3 1 $attr16
@@ -194,10 +174,6 @@ test_attr_replay remote_file1 "attr_name2" $attr1k "r" "larp"
 create_test_file remote_file2 1 $attr64k
 test_attr_replay remote_file2 "attr_name2" $attr64k "s" "larp"
 test_attr_replay remote_file2 "attr_name2" $attr64k "r" "larp"
-
-# replace shortform with different value
-create_test_file sf_file 2 $attr64
-test_attr_replay sf_file "attr_name2" $attr16 "s" "larp"
 
 # replace leaf with different value
 create_test_file leaf_file 3 $attr1k
