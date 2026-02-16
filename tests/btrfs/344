@@ -1,0 +1,53 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 SUSE S.A.  All Rights Reserved.
+#
+# FS QA Test 344
+#
+# Check if a failed inline attempt for compression write will mark
+# the whole inode as incompressible
+#
+. ./common/preamble
+_begin_fstest auto quick compress
+
+_require_scratch
+_require_btrfs_command inspect-internal dump-tree
+
+_fixed_by_kernel_commit xxxxxxxxxxxx \
+	"btrfs: do not mark inode incompressible after inline attempt failed"
+
+_scratch_mkfs >>$seqres.full 2>&1
+
+# This inline limit is too small for any header.
+# Thus all compressed inline attempts should fail.
+_scratch_mount "-o compress,max_inline=4"
+
+blocksize=$(_get_file_block_size $SCRATCH_MNT)
+
+# The initial half block write can be compressed, but the compressed
+# size will not meet the 4 bytes limit, thus it will not be inlined.
+#
+# Normally such single block write itself should not mark the inode
+# incompressible, no matter if there is an inline attempt or not.
+#
+# The 1M write should be compressed.
+$XFS_IO_PROG -f -c "pwrite 0 $(( $blocksize / 2 ))" -c sync \
+		-c "pwrite 1m 1m" $SCRATCH_MNT/foobar >> $seqres.full
+ino=$(stat -c "%i" $SCRATCH_MNT/foobar)
+_scratch_unmount
+
+# Dump the fs tree into seqres.full for debug.
+$BTRFS_UTIL_PROG inspect-internal dump-tree -t 5 $SCRATCH_DEV >> $seqres.full
+
+# Check the NOCOMPRESS flag of the inode.
+$BTRFS_UTIL_PROG inspect-internal dump-tree -t 5 $SCRATCH_DEV |\
+grep -A 4 -e "item .* key ($ino INODE_ITEM 0)" | grep -q NOCOMPRESS
+[ $? -eq 0 ] && echo "inode $ino has NOCOMPRESS flag"
+
+# Check the file extent at file offset 1m.
+$BTRFS_UTIL_PROG inspect-internal dump-tree -t 5 $SCRATCH_DEV |\
+grep -A 4 -e "item .* key ($ino EXTENT_DATA 1048576)" | grep -q "compression 0"
+[ $? -eq 0 ] && echo "inode $ino file offset 1M is not compressed"
+
+echo "Silence is golden"
+_exit 0
