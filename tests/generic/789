@@ -1,0 +1,59 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 SUSE S.A.  All Rights Reserved.
+#
+# FS QA Test No. 789
+#
+# Test that if we truncate a file to 0, fsync it, add a hard link to the file
+# and then fsync the parent directory, after a power failure the file has a
+# size of 0 (and the hardlink exists too).
+#
+. ./common/preamble
+_begin_fstest auto quick log
+
+_cleanup()
+{
+	_cleanup_flakey
+	cd /
+	rm -r -f $tmp.*
+}
+
+. ./common/filter
+. ./common/dmflakey
+
+_require_scratch
+_require_dm_target flakey
+
+[ "$FSTYP" = "btrfs" ] && _fixed_by_kernel_commit xxxxxxxxxxxx \
+	"btrfs: fix zero size inode with non-zero size after log replay"
+
+_scratch_mkfs >>$seqres.full 2>&1 || _fail "mkfs failed"
+_require_metadata_journaling $SCRATCH_DEV
+_init_flakey
+_scratch_mount
+
+mkdir $SCRATCH_MNT/dir
+$XFS_IO_PROG -f -c "pwrite -S 0xab 0 64K" $SCRATCH_MNT/dir/foo | _filter_xfs_io
+
+# Persist the file and directory.
+_scratch_sync
+
+# Truncate the file to 0 and fsync it.
+$XFS_IO_PROG -c "truncate 0" -c "fsync" $SCRATCH_MNT/dir/foo
+
+# Create a link to foo in the same dir.
+ln $SCRATCH_MNT/dir/foo $SCRATCH_MNT/dir/bar
+
+# Fsync the directory.
+$XFS_IO_PROG -c "fsync" $SCRATCH_MNT/dir
+
+# Simulate a power failure and then mount again the filesystem to replay the
+# journal/log.
+_flakey_drop_and_remount
+
+echo "file size after power failure: $(stat -c %s $SCRATCH_MNT/dir/foo)"
+echo "file link count after power failure: $(stat -c %h $SCRATCH_MNT/dir/foo)"
+[ -f $SCRATCH_MNT/dir/bar ] || echo "link dir/bar is missing"
+
+# success, all done
+_exit 0
