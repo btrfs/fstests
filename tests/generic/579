@@ -71,6 +71,7 @@ for ((proc = 0; proc < nproc_reader; proc++)); do
 			# match, regardless of whether verity has been enabled
 			# or not yet (or is currently being enabled).
 			cmp $orig_file $fsv_file |& _filter_scratch | \
+				sed -e "s/'//g" | \
 				grep -v "SCRATCH_MNT/fsv$i: No such file or directory" | \
 				grep -v "EOF on SCRATCH_MNT/fsv$i"
 
