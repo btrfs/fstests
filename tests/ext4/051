@@ -16,6 +16,7 @@ _exclude_fs ext2
 _exclude_fs ext3
 _require_scratch
 _require_scratch_shutdown
+_require_metadata_journaling
 _require_command "$TUNE2FS_PROG" tune2fs
 
 echo "Silence is golden"

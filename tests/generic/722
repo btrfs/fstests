@@ -18,6 +18,7 @@ _require_test_program "punch-alternating"
 _require_xfs_io_command exchangerange
 _require_scratch
 _require_scratch_shutdown
+_require_metadata_journaling
 
 _scratch_mkfs >> $seqres.full
 _scratch_mount

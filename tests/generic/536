@@ -17,6 +17,7 @@ _begin_fstest auto quick rw shutdown
 # Modify as appropriate.
 _require_scratch
 _require_scratch_shutdown
+_require_metadata_journaling
 
 # create a small fs and initialize free blocks with a unique pattern
 _scratch_mkfs_sized $((1024 * 1024 * 100)) >> $seqres.full 2>&1

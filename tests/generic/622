@@ -78,6 +78,7 @@ _cleanup()
 # rather than the test filesystem.
 _require_scratch
 _require_scratch_shutdown
+_require_metadata_journaling
 _require_xfs_io_command "pwrite"
 _require_xfs_io_command "fsync"
 _require_xfs_io_command "syncfs"

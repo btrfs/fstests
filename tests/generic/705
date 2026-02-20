@@ -12,6 +12,7 @@ _begin_fstest auto shutdown
 
 _require_scratch
 _require_scratch_shutdown
+_require_metadata_journaling
 _require_command "$FILEFRAG_PROG" filefrag
 _scratch_mkfs > $seqres.full 2>&1
 _scratch_mount

@@ -34,6 +34,7 @@ _begin_fstest auto quick mount shutdown
 # Modify as appropriate.
 _require_scratch_nocheck
 _require_scratch_shutdown_and_syncfs
+_require_metadata_journaling
 
 [ "$OVL_BASE_FSTYP" == "xfs" ] || \
 	_notrun "base fs $OVL_BASE_FSTYP has unknown behavior with syncfs after shutdown"
