@@ -19,7 +19,7 @@ _require_scratch
 _require_attrs
 _require_renameat2 whiteout
 
-[ "$FSTYP" = "xfs" ] && _fixed_by_kernel_commit 70b589a37e1a \
+_fixed_by_fs_commit xfs 70b589a37e1a \
 	"xfs: add selinux labels to whiteout inodes"
 
 get_selinux_label()

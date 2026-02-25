@@ -14,8 +14,7 @@
 . ./common/preamble
 _begin_fstest quick auto mmap
 
-[ $FSTYP == "btrfs" ] && \
-	_fixed_by_kernel_commit b73a6fd1b1ef \
+_fixed_by_fs_commit btrfs b73a6fd1b1ef \
 		"btrfs: split partial dio bios before submit"
 
 _require_test

@@ -17,8 +17,7 @@ _require_test
 _require_odirect
 _require_test_program dio-append-buf-fault
 
-[ $FSTYP == "btrfs" ] && \
-	_fixed_by_kernel_commit 939b656bc8ab \
+_fixed_by_fs_commit btrfs 939b656bc8ab \
 	"btrfs: fix corruption after buffer fault in during direct IO append write"
 
 # On error the test program writes messages to stderr, causing a golden output

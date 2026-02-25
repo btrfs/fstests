@@ -21,7 +21,7 @@ _cleanup()
 # Import common functions.
 . ./common/scsi_debug
 
-[ "$FSTYP" = "xfs" ] && _fixed_by_kernel_commit 7c71ee78031c \
+_fixed_by_fs_commit xfs 7c71ee78031c \
 	"xfs: allow logical-sector sized O_DIRECT"
 
 _require_scsi_debug

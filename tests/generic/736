@@ -21,7 +21,7 @@ _cleanup()
 _require_test
 _require_test_program readdir-while-renames
 
-[ $FSTYP = "btrfs" ] && _fixed_by_kernel_commit 9b378f6ad48c \
+_fixed_by_fs_commit btrfs 9b378f6ad48c \
 	"btrfs: fix infinite directory reads"
 
 target_dir="$TEST_DIR/test-$seq"

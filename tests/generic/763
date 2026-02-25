@@ -16,7 +16,7 @@ _begin_fstest auto quick
 # Import common functions.
 . ./common/filter
 
-[ "$FSTYP" = "exfat" ] && _fixed_by_kernel_commit dda0407a2026 \
+_fixed_by_fs_commit exfat dda0407a2026 \
 	"exfat: short-circuit zero-byte writes in exfat_file_write_iter"
 
 # Modify as appropriate.

@@ -25,16 +25,10 @@ _require_test_program "punch-alternating"
 _require_test_program "t_reflink_read_race"
 _require_command "$TIMEOUT_PROG" timeout
 
-case "$FSTYP" in
-"btrfs")
-	_fixed_by_kernel_commit 5d6f0e9890ed \
+_fixed_by_fs_commit btrfs 5d6f0e9890ed \
 		"btrfs: stop locking the source extent range during reflink"
-	;;
-"xfs")
-	_fixed_by_kernel_commit 14a537983b22 \
+_fixed_by_fs_commit xfs 14a537983b22 \
 		"xfs: allow read IO and FICLONE to run concurrently"
-	;;
-esac
 
 rm -f "$seqres.full"
 

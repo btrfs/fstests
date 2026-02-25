@@ -10,8 +10,7 @@
 . ./common/preamble
 _begin_fstest auto quick seek
 
-[ $FSTYP == "btrfs" ] &&
-	_fixed_by_kernel_commit 2f2e84ca6066 \
+_fixed_by_fs_commit btrfs 2f2e84ca6066 \
 	"btrfs: fix off-by-one in delalloc search during lseek"
 
 _require_test

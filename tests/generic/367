@@ -16,7 +16,7 @@
 
 _begin_fstest ioctl quick
 
-[ "$FSTYP" = "xfs" ] && _fixed_by_kernel_commit 2a492ff66673 \
+_fixed_by_fs_commit xfs 2a492ff66673 \
 	"xfs: Check for delayed allocations before setting extsize"
 
 _require_scratch_extsize

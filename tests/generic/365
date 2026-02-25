@@ -9,15 +9,12 @@
 . ./common/preamble
 _begin_fstest auto rmap fsmap
 
-if [ "$FSTYP" = "xfs" ]; then
-	_fixed_by_kernel_commit 68415b349f3f \
-		"xfs: Fix the owner setting issue for rmap query in xfs fsmap"
-	_fixed_by_kernel_commit ca6448aed4f1 \
-		"xfs: Fix missing interval for missing_owner in xfs fsmap"
-elif [ "$FSTYP" = "ext4" ]; then
-	_fixed_by_kernel_commit 4a622e4d477b \
-		"ext4: fix FS_IOC_GETFSMAP handling"
-fi
+_fixed_by_fs_commit xfs 68415b349f3f \
+	"xfs: Fix the owner setting issue for rmap query in xfs fsmap"
+_fixed_by_fs_commit xfs ca6448aed4f1 \
+	"xfs: Fix missing interval for missing_owner in xfs fsmap"
+_fixed_by_fs_commit ext4 4a622e4d477b \
+	"ext4: fix FS_IOC_GETFSMAP handling"
 
 . ./common/filter
 

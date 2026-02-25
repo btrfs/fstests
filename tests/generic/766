@@ -32,12 +32,10 @@ _cleanup()
 
 _exclude_fs ext2
 
-[ $FSTYP == "ext4" ] && \
-        _fixed_by_kernel_commit 273108fa5015 \
-        "ext4: handle read only external journal device"
+_fixed_by_fs_commit ext4 273108fa5015 \
+	"ext4: handle read only external journal device"
 
-[ $FSTYP == "xfs" ] && \
-        _fixed_by_kernel_commit bfecc4091e07 \
+_fixed_by_fs_commit xfs bfecc4091e07 \
         "xfs: allow ro mounts if rtdev or logdev are read-only"
 
 _require_scratch_nocheck

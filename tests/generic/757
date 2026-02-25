@@ -19,7 +19,7 @@ _cleanup()
 }
 
 
-[ $FSTYP = "btrfs" ] && _fixed_by_kernel_commit e917ff56c8e7 \
+_fixed_by_fs_commit btrfs e917ff56c8e7 \
 	"btrfs: determine synchronous writers from bio or writeback control"
 
 fio_config=$tmp.fio

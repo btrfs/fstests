@@ -19,10 +19,9 @@ _cleanup()
 
 . ./common/reflink
 
-[ "$FSTYP" = "btrfs" ] && _fixed_by_kernel_commit 03018e5d8508 \
+_fixed_by_fs_commit btrfs 03018e5d8508 \
     "btrfs: fix swap file activation failure due to extents that used to be shared"
-[ "$FSTYP" = "xfs" ] && _fixed_by_kernel_commit 2d873efd174b \
-	"xfs: flush inodegc before swapon"
+_fixed_by_fs_commit xfs 2d873efd174b "xfs: flush inodegc before swapon"
 
 _require_scratch_swapfile
 _require_scratch_reflink

@@ -13,7 +13,7 @@ _begin_fstest auto
 
 _require_scratch
 
-[ "$FSTYP" = "udf" ] && _fixed_by_kernel_commit f950fd052913 \
+_fixed_by_fs_commit udf f950fd052913 \
 	"udf: Protect rename against modification of moved directory"
 [[ "$FSTYP" =~ ext[0-9]+ ]] && _fixed_by_kernel_commit 0813299c586b \
 	"ext4: Fix possible corruption when moving a directory"

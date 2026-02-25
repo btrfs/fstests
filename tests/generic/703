@@ -23,8 +23,7 @@ fio_config=$tmp.fio
 fio_out=$tmp.fio.out
 test_file="${SCRATCH_MNT}/foo"
 
-[ $FSTYP == "btrfs" ] &&
-	_fixed_by_kernel_commit 8184620ae212 \
+_fixed_by_fs_commit btrfs 8184620ae212 \
 	"btrfs: fix lost file sync on direct IO write with nowait and dsync iocb"
 
 # We allocate 256M of data for the test file, so require a higher size of 512M

@@ -25,7 +25,7 @@ _cleanup()
 . ./common/dmflakey
 . ./common/punch
 
-[ "$FSTYP" = "btrfs" ] && _fixed_by_kernel_commit e6e3dec6c3c288 \
+_fixed_by_fs_commit btrfs e6e3dec6c3c288 \
         "btrfs: update generation of hole file extent item when merging holes"
 _require_scratch
 _require_dm_target flakey
