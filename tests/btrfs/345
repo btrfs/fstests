@@ -1,0 +1,73 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 SUSE S.A.  All Rights Reserved.
+#
+# FS QA Test 345
+#
+# Test that we can create a large number of snapshots of a received subvolume
+# without triggering a transaction abort due to leaf item overflow. Also check
+# that we are able to delete the snapshots and use the last one for an
+# incremental send/receive despite an item overflow when updating the uuid tree
+# to insert a BTRFS_UUID_KEY_RECEIVED_SUBVOL item.
+#
+. ./common/preamble
+_begin_fstest auto quick subvol send snapshot
+
+_require_scratch
+_require_btrfs_support_sectorsize 4096
+_require_btrfs_command "property"
+
+_fixed_by_kernel_commit xxxxxxxxxxxx \
+	"btrfs: fix transaction abort when snapshotting received subvolumes"
+
+# Use a 4K node/leaf size to make the test faster.
+_scratch_mkfs -n 4K >> $seqres.full 2>&1 || _fail "mkfs failed"
+_scratch_mount
+
+# Create a subvolume.
+_btrfs subvolume create $SCRATCH_MNT/sv
+touch $SCRATCH_MNT/sv/foo
+
+# Turn the subvolume to RO mode so that we can send it.
+_btrfs property set $SCRATCH_MNT/sv ro true
+
+# Send the subvolume and receive it. Our received version of the subvolume
+# (in $SCRATCH_MNT/snaps/sv) will have a non-NULL received UUID field in its
+# root item.
+mkdir $SCRATCH_MNT/snaps
+_btrfs send -f $SCRATCH_MNT/send.stream $SCRATCH_MNT/sv
+_btrfs receive -f $SCRATCH_MNT/send.stream $SCRATCH_MNT/snaps
+
+# Now snapshot the received the subvolume a lot of times and check we are able
+# to snapshot and that we don't trigger a transaction abort (will trigger a
+# warning and dump a stack trace in dmesg/syslog).
+total=$(( 1000 * LOAD_FACTOR ))
+for ((i = 1; i <= $total; i++)); do
+    _btrfs subvolume snapshot -r $SCRATCH_MNT/snaps/sv $SCRATCH_MNT/snaps/sv_$i
+done
+
+# Create a snapshot based on the last snapshot, add a file to it, and turn it
+# to RO so that we can used it for a send operation.
+last_snap="${SCRATCH_MNT}/snaps/sv_${total}"
+_btrfs subvolume snapshot $last_snap $SCRATCH_MNT/snaps/sv_last_as_parent
+echo -n "hello world" > $SCRATCH_MNT/snaps/sv_last_as_parent/bar
+_btrfs property set $SCRATCH_MNT/snaps/sv_last_as_parent ro true
+
+# Now we attempt to send and receive that snapshot, verify that it works even
+# if the creation of the snapshot $last_snap was not able to add a
+# BTRFS_UUID_KEY_RECEIVED_SUBVOL item to the uuid tree due to leaf overflow.
+_btrfs send -f $SCRATCH_MNT/inc_send.stream -p $last_snap \
+       $SCRATCH_MNT/snaps/sv_last_as_parent
+_btrfs receive -f $SCRATCH_MNT/inc_send.stream $SCRATCH_MNT/
+
+# Verify the received snapshot has the new file with the right content.
+diff $SCRATCH_MNT/snaps/sv_last_as_parent/bar $SCRATCH_MNT/sv_last_as_parent/bar
+
+# Now check that we are able to delete all the snapshots too.
+for ((i = 1; i <= $total; i++)); do
+    _btrfs subvolume delete $SCRATCH_MNT/snaps/sv_$i
+done
+
+# success, all done
+echo "Silence is golden"
+_exit 0
