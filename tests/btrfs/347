@@ -1,0 +1,66 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 SUSE S.A.  All Rights Reserved.
+#
+# FS QA Test 347
+#
+# Test that using the received subvol ioctl to set a received UUID on a root
+# does not trigger a transaction abort (and turn the filesystem to RO mode) if
+# a user abuses by assigning the same received UUID to a large number of
+# subvolumes.
+#
+. ./common/preamble
+_begin_fstest auto quick subvol
+
+_require_test_program t_btrfs_received_uuid_ioctl
+_require_scratch
+_require_btrfs_support_sectorsize 4096
+
+_fixed_by_kernel_commit xxxxxxxxxxxx \
+	"btrfs: fix transaction abort on set received ioctl due to item overflow"
+
+# Use a 4K node/leaf size to make the test faster.
+_scratch_mkfs -n 4K >> $seqres.full 2>&1 || _fail "mkfs failed"
+_scratch_mount
+
+# With a leaf size of 4K, we can get a BTRFS_UUID_KEY_RECEIVED_SUBVOL key with
+# maximum number of 496 root IDs (u64 values).
+#
+# We have:
+#
+#  total item size = sizeof(struct btrfs_item) + sizeof(u64) * 496
+#                  = 25 + 8 * 496 = 3993
+#
+#  BTRFS_LEAF_DATA_SIZE = leafsize - sizeof(struct btrfs_header)
+#                       = 4096 - 101 = 3995
+#
+# So 497 root IDs would be 3993 + 8 = 4001 which is > BTRFS_LEAF_DATA_SIZE.
+num_subvols=496
+
+for ((i = 1; i <= $num_subvols; i++)); do
+	_btrfs subvolume create $SCRATCH_MNT/sv_$i
+done
+
+for ((i = 1; i <= $num_subvols; i++)); do
+	$here/src/t_btrfs_received_uuid_ioctl \
+		8c628557-6987-42b2-ba16-b7cc79ddfb43 $SCRATCH_MNT/sv_$i
+done
+
+# Add one more subvolume and try to set its received UUID to the same UUID.
+# This should fail due to item overflow.
+_btrfs subvolume create $SCRATCH_MNT/sv_last
+$here/src/t_btrfs_received_uuid_ioctl \
+	8c628557-6987-42b2-ba16-b7cc79ddfb43 $SCRATCH_MNT/sv_last
+
+# The failure to set the received uuid on this last subvolume should not cause
+# in a transaction abort and turn the filesystem to RO mode - otherwise a
+# malicious user could disrupt a system. So check this by seeing if we can
+# create a file.
+echo -n "hello world" > $SCRATCH_MNT/foobar
+
+# Unmount and mount again, verify file foobar exists and with the right content.
+_scratch_cycle_mount
+echo "File foobar content: $(cat $SCRATCH_MNT/foobar)"
+
+# success, all done
+_exit 0

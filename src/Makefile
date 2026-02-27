@@ -107,6 +107,10 @@ ifeq ($(HAVE_FICLONE),yes)
      TARGETS += t_reflink_read_race
 endif
 
+ifeq ($(HAVE_LIBBTRFSUTIL), true)
+     LINUX_TARGETS += t_btrfs_received_uuid_ioctl
+endif
+
 ifeq ($(NEED_INTERNAL_XFS_IOC_EXCHANGE_RANGE),yes)
 LCFLAGS += -DNEED_INTERNAL_XFS_IOC_EXCHANGE_RANGE
 endif
