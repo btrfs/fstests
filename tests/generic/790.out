@@ -1,0 +1,12 @@
+QA output created by 790
+Filesystem content after power failure:
+
+SCRATCH_MNT/:
+dir1
+dir2
+foo
+
+SCRATCH_MNT/dir1:
+
+SCRATCH_MNT/dir2:
+link
