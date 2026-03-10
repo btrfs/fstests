@@ -3031,6 +3031,11 @@ _require_xfs_io_command()
 	"label")
 		testio=`$XFS_IO_PROG -c "label" $TEST_DIR 2>&1`
 		;;
+	"verifymedia")
+		testio=`$XFS_IO_PROG -x -c "verifymedia $* 0 0" 2>&1`
+		echo $testio | grep -q "invalid option" && \
+			_notrun "xfs_io $command support is missing"
+		;;
 	"open")
 		# -c "open $f" is broken in xfs_io <= 4.8. Along with the fix,
 		# a new -C flag was introduced to execute one shot commands.

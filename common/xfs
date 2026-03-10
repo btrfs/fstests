@@ -2301,3 +2301,101 @@ _filter_bmap_gno()
 		if ($ag =~ /\d+/) {print "$ag "} ;
         '
 }
+
+# Run the xfs_healer program on some filesystem
+_xfs_healer() {
+	$XFS_HEALER_PROG "$@"
+}
+
+# Compute the xfs_healer systemd service instance name for a given path.
+# This is easy because xfs_healer has always supported --svcname.
+_xfs_healer_svcname()
+{
+	_xfs_healer --svcname "$@"
+}
+
+# Compute the xfs_scrub systemd service instance name for a given path.  This
+# is tricky because xfs_scrub only gained --svcname when xfs_healer was made.
+_xfs_scrub_svcname()
+{
+	local ret
+
+	if ret="$($XFS_SCRUB_PROG --svcname "$@" 2>/dev/null)"; then
+		echo "$ret"
+		return 0
+	fi
+
+	# ...but if not, we can fall back to brute force systemd invocations.
+	_systemd_service_unit_path "xfs_scrub@.service" "$*"
+}
+
+# Run the xfs_healer program on the scratch fs
+_scratch_xfs_healer() {
+	_xfs_healer "$@" "$SCRATCH_MNT"
+}
+
+# Turn off the background xfs_healer service if any so that it doesn't fix
+# injected metadata errors; then start a background copy of xfs_healer to
+# capture that.
+_invoke_xfs_healer() {
+	local mount="$1"
+	local logfile="$2"
+	shift; shift
+
+	if _systemd_is_running; then
+		local svc="$(_xfs_healer_svcname "$mount")"
+		_systemd_unit_stop "$svc" &>> $seqres.full
+	fi
+
+	$XFS_HEALER_PROG "$mount" "$@" &> "$logfile" &
+	XFS_HEALER_PID=$!
+
+	# Wait 30s for the healer program to really start up
+	for ((i = 0; i < 60; i++)); do
+		test -e "$logfile" && \
+			grep -q 'monitoring started' "$logfile" && \
+			break
+		sleep 0.5
+	done
+}
+
+# Run our own copy of xfs_healer against the scratch device.  Note that
+# unmounting the scratch fs causes the healer daemon to exit, so we don't need
+# to kill it explicitly from _cleanup.
+_scratch_invoke_xfs_healer() {
+	_invoke_xfs_healer "$SCRATCH_MNT" "$@"
+}
+
+# Unmount the filesystem to kill the xfs_healer instance started by
+# _invoke_xfs_healer, and wait up to a certain amount of time for it to exit.
+_kill_xfs_healer() {
+	local unmount="$1"
+	local timeout="${2:-30}"
+	local i
+
+	# Unmount fs to kill healer, then wait for it to finish
+	for ((i = 0; i < (timeout * 2); i++)); do
+		$unmount &>> $seqres.full && break
+		sleep 0.5
+	done
+
+	test -n "$XFS_HEALER_PID" && \
+		kill $XFS_HEALER_PID &>> $seqres.full
+	wait
+	unset XFS_HEALER_PID
+}
+
+# Unmount the scratch fs to kill a _scratch_invoke_xfs_healer instance.
+_scratch_kill_xfs_healer() {
+	local unmount="${1:-_scratch_unmount}"
+	shift
+
+	_kill_xfs_healer "$unmount" "$@"
+}
+
+# Does this mounted filesystem support xfs_healer?
+_require_xfs_healer()
+{
+	_xfs_healer --supported "$@" &>/dev/null || \
+		_notrun "health monitoring not supported on this kernel"
+}

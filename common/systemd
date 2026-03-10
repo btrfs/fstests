@@ -44,6 +44,18 @@ _systemd_unit_active() {
 	test "$(systemctl is-active "$1")" = "active"
 }
 
+# Wait for up to a certain number of seconds for a service to reach inactive
+# state.
+_systemd_unit_wait() {
+	local svcname="$1"
+	local timeout="${2:-30}"
+
+	for ((i = 0; i < (timeout * 2); i++)); do
+		test "$(systemctl is-active "$svcname")" = "inactive" && break
+		sleep 0.5
+	done
+}
+
 _require_systemd_unit_active() {
 	_require_systemd_unit_defined "$1"
 	_systemd_unit_active "$1" || \
@@ -70,4 +82,31 @@ _systemd_runtime_dir() {
 _systemd_unit_status() {
 	_systemd_installed || return 1
 	systemctl status "$1"
+}
+
+# Start a running systemd unit
+_systemd_unit_start() {
+	systemctl start "$1"
+}
+# Stop a running systemd unit
+_systemd_unit_stop() {
+	systemctl stop "$1"
+}
+
+# Mask or unmask a running systemd unit
+_systemd_unit_mask() {
+	systemctl mask "$1"
+}
+_systemd_unit_unmask() {
+	systemctl unmask "$1"
+}
+_systemd_unit_masked() {
+	systemctl status "$1" 2>/dev/null | grep -q 'Loaded: masked'
+}
+
+_systemd_service_unit_path() {
+	local template="$1"
+	local path="$2"
+
+	systemd-escape --template "$template" --path "$path"
 }

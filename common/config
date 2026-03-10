@@ -161,6 +161,20 @@ export XFS_ADMIN_PROG="$(type -P xfs_admin)"
 export XFS_GROWFS_PROG=$(type -P xfs_growfs)
 export XFS_SPACEMAN_PROG="$(type -P xfs_spaceman)"
 export XFS_SCRUB_PROG="$(type -P xfs_scrub)"
+
+XFS_HEALER_PROG="$(type -P xfs_healer)"
+XFS_HEALER_START_PROG="$(type -P xfs_healer_start)"
+
+# If not found, try the ones installed in libexec
+if [ ! -x "$XFS_HEALER_PROG" ] && [ -e /usr/libexec/xfsprogs/xfs_healer ]; then
+	XFS_HEALER_PROG=/usr/libexec/xfsprogs/xfs_healer
+fi
+if [ ! -x "$XFS_HEALER_START_PROG" ] && [ -e /usr/libexec/xfsprogs/xfs_healer_start ]; then
+	XFS_HEALER_START_PROG=/usr/libexec/xfsprogs/xfs_healer_start
+fi
+export XFS_HEALER_PROG
+export XFS_HEALER_START_PROG
+
 export XFS_PARALLEL_REPAIR_PROG="$(type -P xfs_prepair)"
 export XFS_PARALLEL_REPAIR64_PROG="$(type -P xfs_prepair64)"
 export __XFSDUMP_PROG="$(type -P xfsdump)"

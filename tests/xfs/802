@@ -105,8 +105,8 @@ run_scrub_service() {
 }
 
 echo "Scrub Scratch FS"
-scratch_path=$(systemd-escape --path "$SCRATCH_MNT")
-run_scrub_service xfs_scrub@$scratch_path
+svc="$(_xfs_scrub_svcname "$SCRATCH_MNT")"
+run_scrub_service "$svc"
 find_scrub_trace "$SCRATCH_MNT"
 
 # Remove the xfs_scrub_all media scan stamp directory (if specified) because we
