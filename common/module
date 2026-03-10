@@ -225,3 +225,14 @@ _optional_reload_fs_module()
 		_test_loadable_fs_module "$@" 2>&1 | \
 		sed -e '/patient module removal/d'
 }
+
+_require_module_refcount()
+{
+	local refcount_file="/sys/module/$1/refcnt"
+	test -e "$refcount_file" || _notrun "cannot find $1 module refcount"
+}
+
+_module_refcount()
+{
+	cat "/sys/module/$1/refcnt"
+}
