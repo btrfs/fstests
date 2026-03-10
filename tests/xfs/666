@@ -1,0 +1,123 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 Oracle.  All Rights Reserved.
+#
+# FS QA Test No. 666
+#
+# Check that the xfs_healer startup service starts the per-mount xfs_healer
+# service for the scratch filesystem.  IOWs, this is basic testing for the
+# xfs_healer systemd background services.
+#
+
+# unreliable_in_parallel: this appears to try to run healer services on all
+# mounted filesystems - that's a problem when there are a hundred other test
+# filesystems mounted running other tests...
+
+. ./common/preamble
+_begin_fstest auto selfhealing unreliable_in_parallel
+
+_cleanup()
+{
+	cd /
+	test -n "$new_healerstart_svc" &&
+		_systemd_unit_stop "$new_healerstart_svc"
+	test -n "$was_masked" && \
+		_systemd_unit_mask "$healer_svc" &>> $seqres.full
+	if [ -n "$new_svcfile" ]; then
+		rm -f "$new_svcfile"
+		systemctl daemon-reload
+	fi
+	rm -r -f $tmp.*
+}
+
+. ./common/filter
+. ./common/populate
+. ./common/fuzzy
+. ./common/systemd
+
+_require_systemd_is_running
+_require_systemd_unit_defined xfs_healer@.service
+_require_systemd_unit_defined xfs_healer_start.service
+_require_scratch
+_require_scrub
+_require_xfs_io_command "scrub"
+_require_xfs_spaceman_command "health"
+_require_populate_commands
+_require_command "$XFS_HEALER_PROG" "xfs_healer"
+_require_command $ATTR_PROG "attr"
+
+_xfs_skip_online_rebuild
+_xfs_skip_offline_rebuild
+
+orig_svcfile="$(_systemd_unit_path "xfs_healer_start.service")"
+test -f "$orig_svcfile" || \
+	_notrun "cannot find xfs_healer_start service file"
+
+new_svcdir="$(_systemd_runtime_dir)"
+test -d "$new_svcdir" || \
+	_notrun "cannot find runtime systemd service dir"
+
+# We need to make some local mods to the xfs_healer_start service definition
+# so we fork it and create a new service just for this test.
+new_healerstart_svc="xfs_healer_start_fstest.service"
+_systemd_unit_status "$new_healerstart_svc" 2>&1 | \
+	grep -E -q '(could not be found|Loaded: not-found)' || \
+	_notrun "systemd service \"$new_healerstart_svc\" found, will not mess with this"
+
+find_healer_trace() {
+	local path="$1"
+
+	sleep 2		# wait for delays in startup
+	$XFS_HEALER_PROG --supported "$path" 2>&1 | grep -q 'already running' || \
+		echo "cannot find evidence that xfs_healer is running for $path"
+}
+
+echo "Format and populate"
+_scratch_mkfs >> $seqres.full
+_scratch_mount
+_require_xfs_healer $SCRATCH_MNT
+
+# Configure the filesystem for background checks of the filesystem.
+$ATTR_PROG -R -s xfs:autofsck -V check $SCRATCH_MNT >> $seqres.full
+
+was_masked=
+healer_svc="$(_xfs_healer_svcname "$SCRATCH_MNT")"
+
+# Preserve the xfs_healer@ mask state -- we don't want this permanently
+# changing global state.
+if _systemd_unit_masked "$healer_svc"; then
+	_systemd_unit_unmask "$healer_svc" &>> $seqres.full
+	was_masked=1
+fi
+
+echo "Start healer on scratch FS"
+_systemd_unit_start "$healer_svc"
+find_healer_trace "$SCRATCH_MNT"
+_systemd_unit_stop "$healer_svc"
+
+new_svcfile="$new_svcdir/$new_healerstart_svc"
+cp "$orig_svcfile" "$new_svcfile"
+
+sed -e '/ExecStart=/d' -e '/BindPaths=/d' -e '/ExecCondition=/d' -i $new_svcfile
+cat >> "$new_svcfile" << ENDL
+[Service]
+ExecCondition=$XFS_HEALER_START_PROG --supported
+ExecStart=$XFS_HEALER_START_PROG
+ENDL
+_systemd_reload
+
+# Emit the results of our editing to the full log.
+systemctl cat "$new_healerstart_svc" >> $seqres.full
+
+echo "Start healer for everything"
+_systemd_unit_start "$new_healerstart_svc"
+find_healer_trace "$SCRATCH_MNT"
+
+echo "Restart healer for scratch FS"
+_scratch_cycle_mount
+find_healer_trace "$SCRATCH_MNT"
+
+echo "Healer testing done" | tee -a $seqres.full
+
+# success, all done
+_exit 0
