@@ -1,0 +1,43 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2024-2026 Oracle.  All Rights Reserved.
+#
+# FS QA Test No. 657
+#
+# Make sure that xfs_healer correctly handles all the reports that it gets
+# from the kernel.  We simulate this by using the --everything mode so we get
+# all the events, not just the sickness reports.
+#
+. ./common/preamble
+_begin_fstest auto selfhealing
+
+. ./common/filter
+. ./common/fuzzy
+. ./common/systemd
+. ./common/populate
+
+_require_scrub
+_require_xfs_io_command "scrub"		# online check support
+_require_command "$XFS_HEALER_PROG" "xfs_healer"
+_require_scratch
+
+# Does this fs support health monitoring?
+_scratch_mkfs >> $seqres.full
+_scratch_mount
+_require_xfs_healer $SCRATCH_MNT
+_scratch_unmount
+
+# Create a sample fs with all the goodies
+_scratch_populate_cached nofill &>> $seqres.full
+_scratch_mount
+
+_scratch_invoke_xfs_healer "$tmp.healer" --everything
+
+# Run scrub to make some noise
+_scratch_scrub -b -n >> $seqres.full
+
+_scratch_kill_xfs_healer
+cat $tmp.healer >> $seqres.full
+
+echo Silence is golden
+_exit 0
