@@ -1,0 +1,21 @@
+QA output created by 659
+Try buffered read
+pread: Input/output error
+Try directio read
+pread: Input/output error
+Try directio write
+pwrite: Input/output error
+Try buffered write
+fsync: Input/output error
+Fix device
+Kill healer
+VICTIM pos NUM len NUM: buffered_read: Input/output error
+VICTIM pos NUM len NUM: buffered_write: Input/output error
+VICTIM pos NUM len NUM: directio_read: Input/output error
+VICTIM pos NUM len NUM: directio_write: Input/output error
+Remount and restart healer
+Try buffered read again
+Try directio read again
+Try directio write again
+Try buffered write again
+Kill healer again
