@@ -1,0 +1,36 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (c) 2024-2026 Oracle.  All Rights Reserved.
+#
+# FS QA Test No. 661
+#
+# Check that xfs_healer can report filesystem shutdowns.
+
+. ./common/preamble
+_begin_fstest auto quick scrub eio selfhealing shutdown
+
+. ./common/fuzzy
+. ./common/filter
+. ./common/systemd
+
+_require_scratch_nocheck
+_require_scrub
+_require_command "$XFS_HEALER_PROG" "xfs_healer"
+
+_scratch_mkfs >> $seqres.full
+_scratch_mount
+_require_xfs_healer $SCRATCH_MNT
+$XFS_IO_PROG -f -c "pwrite -S 0x58 0 500k" -c "fsync" $victim >> $seqres.full
+
+echo "Start healer and shut down"
+_scratch_invoke_xfs_healer "$tmp.healer"
+_scratch_shutdown -f
+
+# Unmount filesystem to start fresh
+echo "Kill healer"
+_scratch_kill_xfs_healer
+cat $tmp.healer >> $seqres.full
+cat $tmp.healer | _filter_scratch | grep 'shut down'
+
+# success, all done
+_exit 0

@@ -1,0 +1,4 @@
+QA output created by 661
+Start healer and shut down
+Kill healer
+SCRATCH_MNT: filesystem shut down due to forced unmount
