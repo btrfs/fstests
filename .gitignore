@@ -89,6 +89,7 @@ tags
 /src/fiemap-tester
 /src/fill
 /src/fill2
+/src/fs-monitor
 /src/fs_perms
 /src/fscrypt-crypt-util
 /src/fssum

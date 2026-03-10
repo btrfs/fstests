@@ -3023,6 +3023,11 @@ _require_xfs_io_command()
 		echo $testio | grep -q "Inappropriate ioctl" && \
 			_notrun "xfs_io $command support is missing"
 		;;
+	"healthmon")
+		test -z "$param" && param="-p"
+		testio=`$XFS_IO_PROG -c "healthmon $param" $TEST_DIR 2>&1`
+		param_checked="$param"
+		;;
 	"label")
 		testio=`$XFS_IO_PROG -c "label" $TEST_DIR 2>&1`
 		;;
@@ -6157,6 +6162,26 @@ _require_max_file_range_blocks()
 	*)
 		;;
 	esac
+}
+
+_require_fanotify_ioerrors()
+{
+	local x
+
+	case "$FSTYP" in
+	xfs)
+		# added as a part of xfs health monitoring
+		_require_xfs_io_command healthmon
+		return 0
+		;;
+	ext4)
+		# added at the same time as err_report_sec
+		x="$(_get_fs_sysfs_attr $TEST_DEV err_report_sec)"
+		test -n "$x" && return 0
+		;;
+	esac
+
+	_notrun "$FSTYP does not support fanotify ioerrors"
 }
 
 ################################################################################

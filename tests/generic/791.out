@@ -1,0 +1,20 @@
+QA output created by 791
+Try buffered read
+pread: Input/output error
+Try directio read
+pread: Input/output error
+Try directio write
+pwrite: Input/output error
+Try buffered write
+fsync: Input/output error
+Fix device
+Kill fsnotify
+	Generic Error Record: len=XXX
+	error: 5
+FAN_FS_ERROR (len=XXX)
+Remount and restart fsnotify
+Try buffered read again
+Try directio read again
+Try directio write again
+Try buffered write again
+Kill fsnotify again
