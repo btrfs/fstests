@@ -1,0 +1,7 @@
+QA output created by 660
+Simulate media error
+DEVICE: verify error at offset XXX length XXX: Input/output error
+No more media error
+Kill healer
+SCRATCH_MNT DEVICE daddr NUM bbcount NUM: media error
+VICTIM pos NUM len NUM: media failed
