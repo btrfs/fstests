@@ -17,6 +17,7 @@ _begin_fstest scrub fsstress_scrub
 . ./common/inject
 . ./common/xfs
 
+_require_scrub
 _require_scratch
 _require_xfs_stress_scrub
 

@@ -16,8 +16,7 @@ _begin_fstest auto online_repair
 . ./common/fuzzy
 . ./common/populate
 
-
-# Modify as appropriate.
+_require_scrub
 _require_xfs_db_command "link"
 _require_xfs_db_command "unlink"
 _require_scratch
