@@ -179,6 +179,14 @@
 #define FALLOC_FL_INSERT_RANGE		0x20
 #endif
 
+#ifndef FALLOC_FL_UNSHARE_RANGE
+#define FALLOC_FL_UNSHARE_RANGE		0x40
+#endif
+
+#ifndef FALLOC_FL_WRITE_ZEROES
+#define FALLOC_FL_WRITE_ZEROES		0x80
+#endif
+
 #endif /* HAVE_LINUX_FALLOC_H */
 
 #ifdef HAVE_SYS_MMAN_H

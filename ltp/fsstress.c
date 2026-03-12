@@ -124,6 +124,7 @@ typedef enum {
 	OP_MWRITE,
 	OP_PUNCH,
 	OP_ZERO,
+	OP_WRITE_ZEROES,
 	OP_COLLAPSE,
 	OP_INSERT,
 	OP_READ,
@@ -257,6 +258,7 @@ void	mread_f(opnum_t, long);
 void	mwrite_f(opnum_t, long);
 void	punch_f(opnum_t, long);
 void	zero_f(opnum_t, long);
+void	write_zeroes_f(opnum_t, long);
 void	collapse_f(opnum_t, long);
 void	insert_f(opnum_t, long);
 void	unshare_f(opnum_t, long);
@@ -326,6 +328,7 @@ struct opdesc	ops[OP_LAST]	= {
 	[OP_MWRITE]	   = {"mwrite",	       mwrite_f,	2, 1 },
 	[OP_PUNCH]	   = {"punch",	       punch_f,		1, 1 },
 	[OP_ZERO]	   = {"zero",	       zero_f,		1, 1 },
+	[OP_WRITE_ZEROES]  = {"write_zeroes",  write_zeroes_f,	1, 1 },
 	[OP_COLLAPSE]	   = {"collapse",      collapse_f,	1, 1 },
 	[OP_INSERT]	   = {"insert",	       insert_f,	1, 1 },
 	[OP_READ]	   = {"read",	       read_f,		1, 0 },
@@ -3827,6 +3830,7 @@ struct print_flags falloc_flags [] = {
 	{ FALLOC_FL_ZERO_RANGE, "ZERO_RANGE"},
 	{ FALLOC_FL_INSERT_RANGE, "INSERT_RANGE"},
 	{ FALLOC_FL_UNSHARE_RANGE, "UNSHARE_RANGE"},
+	{ FALLOC_FL_WRITE_ZEROES, "WRITE_ZEROES"},
 	{ -1, NULL}
 };
 
@@ -3886,7 +3890,8 @@ do_fallocate(opnum_t opno, long r, int mode)
 		off = roundup_64(off, stb.st_blksize);
 		len = roundup_64(len, stb.st_blksize);
 	}
-	mode |= FALLOC_FL_KEEP_SIZE & random();
+	if (!(mode & FALLOC_FL_WRITE_ZEROES))
+		mode |= FALLOC_FL_KEEP_SIZE & random();
 	e = fallocate(fd, mode, (loff_t)off, (loff_t)len) < 0 ? errno : 0;
 	if (v)
 		printf("%d/%lld: fallocate(%s) %s%s [%lld,%lld] %d\n",
@@ -4510,6 +4515,14 @@ zero_f(opnum_t opno, long r)
 {
 #ifdef HAVE_LINUX_FALLOC_H
 	do_fallocate(opno, r, FALLOC_FL_ZERO_RANGE);
+#endif
+}
+
+void
+write_zeroes_f(opnum_t opno, long r)
+{
+#ifdef HAVE_LINUX_FALLOC_H
+	do_fallocate(opno, r, FALLOC_FL_WRITE_ZEROES);
 #endif
 }
 

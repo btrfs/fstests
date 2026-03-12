@@ -125,6 +125,7 @@ enum {
 	OP_FALLOCATE,
 	OP_PUNCH_HOLE,
 	OP_ZERO_RANGE,
+	OP_WRITE_ZEROES,
 	OP_COLLAPSE_RANGE,
 	OP_INSERT_RANGE,
 	OP_CLONE_RANGE,
@@ -189,6 +190,7 @@ int     keep_size_calls = 1;            /* -K flag disables */
 int     unshare_range_calls = 1;        /* -u flag disables */
 int     punch_hole_calls = 1;           /* -H flag disables */
 int     zero_range_calls = 1;           /* -z flag disables */
+int     write_zeroes_calls = 1;         /* -Y flag disables */
 int	collapse_range_calls = 1;	/* -C flag disables */
 int	insert_range_calls = 1;		/* -I flag disables */
 int	mapped_reads = 1;		/* -R flag disables it */
@@ -306,6 +308,7 @@ static const char *op_names[] = {
 	[OP_FALLOCATE] = "fallocate",
 	[OP_PUNCH_HOLE] = "punch_hole",
 	[OP_ZERO_RANGE] = "zero_range",
+	[OP_WRITE_ZEROES] = "write_zeroes",
 	[OP_COLLAPSE_RANGE] = "collapse_range",
 	[OP_INSERT_RANGE] = "insert_range",
 	[OP_CLONE_RANGE] = "clone_range",
@@ -481,6 +484,13 @@ logdump(void)
 			break;
 		case OP_ZERO_RANGE:
 			prt("ZERO     0x%x thru 0x%x\t(0x%x bytes)",
+			    lp->args[0], lp->args[0] + lp->args[1] - 1,
+			    lp->args[1]);
+			if (overlap)
+				prt("\t******ZZZZ");
+			break;
+		case OP_WRITE_ZEROES:
+			prt("WZERO    0x%x thru 0x%x\t(0x%x bytes)",
 			    lp->args[0], lp->args[0] + lp->args[1] - 1,
 			    lp->args[1]);
 			if (overlap)
@@ -1408,6 +1418,59 @@ do_zero_range(unsigned offset, unsigned length, int keep_size)
 #else
 void
 do_zero_range(unsigned offset, unsigned length, int keep_size)
+{
+	return;
+}
+#endif
+
+#ifdef FALLOC_FL_WRITE_ZEROES
+void
+do_write_zeroes(unsigned offset, unsigned length)
+{
+	unsigned end_offset;
+	int mode = FALLOC_FL_WRITE_ZEROES;
+
+	if (length == 0) {
+		if (!quiet && testcalls > simulatedopcount)
+			prt("skipping zero length write zeroes\n");
+		log4(OP_WRITE_ZEROES, offset, length, FL_SKIPPED);
+		return;
+	}
+
+	end_offset = offset + length;
+
+	if (end_offset > biggest) {
+		biggest = end_offset;
+		if (!quiet && testcalls > simulatedopcount)
+			prt("write_zeroes to largest ever: 0x%x\n", end_offset);
+	}
+
+	log4(OP_WRITE_ZEROES, offset, length, FL_NONE);
+
+	if (end_offset > file_size)
+		update_file_size(offset, length);
+
+	if (testcalls <= simulatedopcount)
+		return;
+
+	if ((progressinterval && testcalls % progressinterval == 0) ||
+	    (debug && (monitorstart == -1 || monitorend == -1 ||
+		      end_offset <= monitorend))) {
+		prt("%lld wzero\tfrom 0x%x to 0x%x, (0x%x bytes)\n", testcalls,
+			offset, offset+length, length);
+	}
+	if (fallocate(fd, mode, (loff_t)offset, (loff_t)length) == -1) {
+		prt("write zeroes: 0x%x to 0x%x\n", offset, offset + length);
+		prterr("do_write_zeroes: fallocate");
+		report_failure(161);
+	}
+
+	memset(good_buf + offset, '\0', length);
+}
+
+#else
+void
+do_write_zeroes(unsigned offset, unsigned length)
 {
 	return;
 }
@@ -2409,6 +2472,12 @@ have_op:
 			goto out;
 		}
 		break;
+	case OP_WRITE_ZEROES:
+		if (!write_zeroes_calls) {
+			log4(OP_WRITE_ZEROES, offset, size, FL_SKIPPED);
+			goto out;
+		}
+		break;
 	case OP_COLLAPSE_RANGE:
 		if (!collapse_range_calls) {
 			log4(OP_COLLAPSE_RANGE, offset, size, FL_SKIPPED);
@@ -2512,6 +2581,10 @@ have_op:
 		TRIM_OFF_LEN(offset, size, maxfilelen);
 		do_zero_range(offset, size, keep_size);
 		break;
+	case OP_WRITE_ZEROES:
+		TRIM_OFF_LEN(offset, size, maxfilelen);
+		do_write_zeroes(offset, size);
+		break;
 	case OP_COLLAPSE_RANGE:
 		TRIM_OFF_LEN(offset, size, file_size - 1);
 		offset = rounddown_64(offset, block_size);
@@ -2611,7 +2684,7 @@ void
 usage(void)
 {
 	fprintf(stdout, "usage: %s",
-		"fsx [-adfhknqxyzBEFHIJKLORWXZ0]\n\
+		"fsx [-adfhknqxyzBEFHIJKLORWXZ0Y]\n\
 	   [-b opnum] [-c Prob] [-g filldata] [-i logdev] [-j logid]\n\
 	   [-l flen] [-m start:end] [-o oplen] [-p progressinterval]\n\
 	   [-r readbdy] [-s style] [-t truncbdy] [-w writebdy]\n\
@@ -2662,6 +2735,9 @@ usage(void)
 #endif
 #ifdef FALLOC_FL_ZERO_RANGE
 "	-z: Do not use zero range calls\n"
+#endif
+#ifdef FALLOC_FL_WRITE_ZEROES
+"	-Y: Do not use write zeroes calls\n"
 #endif
 #ifdef FALLOC_FL_COLLAPSE_RANGE
 "	-C: Do not use collapse range calls\n"
@@ -3160,7 +3236,7 @@ main(int argc, char **argv)
 	setvbuf(stdout, (char *)0, _IOLBF, 0); /* line buffered stdout */
 
 	while ((ch = getopt_long(argc, argv,
-				 "0ab:c:de:fg:hi:j:kl:m:no:p:qr:s:t:uw:xyABD:EFJKHzCILN:TOP:RS:UWXZ",
+				 "0ab:c:de:fg:hi:j:kl:m:no:p:qr:s:t:uw:xyABD:EFJKHzCILN:TOP:RS:UWXZY",
 				 longopts, NULL)) != EOF)
 		switch (ch) {
 		case 'a':
@@ -3306,6 +3382,9 @@ main(int argc, char **argv)
 			break;
 		case 'z':
 			zero_range_calls = 0;
+			break;
+		case 'Y':
+			write_zeroes_calls = 0;
 			break;
 		case 'C':
 			collapse_range_calls = 0;
@@ -3568,6 +3647,8 @@ main(int argc, char **argv)
 		punch_hole_calls = test_fallocate(FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE);
 	if (zero_range_calls)
 		zero_range_calls = test_fallocate(FALLOC_FL_ZERO_RANGE);
+	if (write_zeroes_calls)
+		write_zeroes_calls = test_fallocate(FALLOC_FL_WRITE_ZEROES);
 	if (collapse_range_calls)
 		collapse_range_calls = test_fallocate(FALLOC_FL_COLLAPSE_RANGE);
 	if (insert_range_calls)
