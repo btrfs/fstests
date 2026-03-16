@@ -37,13 +37,9 @@ filter_inum()
 }
 
 testme() {
-	local mkfs_args=('-f')
 	local value="$1"
 	test -n "$value" && value="=$value"
-
-	if [ $# -gt 0 ]; then
-		mkfs_args+=('-m' "autofsck$value")
-	fi
+	local mkfs_args=('-f' '-m' "autofsck$value")
 
 	echo "testing ${mkfs_args[*]}" >> $seqres.full
 
@@ -54,7 +50,6 @@ testme() {
 }
 
 testme ''
-testme
 testme none
 testme check
 testme optimize

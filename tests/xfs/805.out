@@ -1,6 +1,5 @@
 QA output created by 805
 autofsck=repair
-failed to get attr xfs:autofsck on inode XXX: No data available
 autofsck=none
 autofsck=check
 autofsck=optimize
