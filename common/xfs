@@ -2311,7 +2311,7 @@ _xfs_healer() {
 # This is easy because xfs_healer has always supported --svcname.
 _xfs_healer_svcname()
 {
-	_xfs_healer --svcname "$@"
+	_xfs_healer --svcname "$@" 2>/dev/null
 }
 
 # Compute the xfs_scrub systemd service instance name for a given path.  This
