@@ -16,10 +16,14 @@ _begin_fstest auto quick scrub eio selfhealing shutdown
 _require_scratch_nocheck
 _require_scrub
 _require_command "$XFS_HEALER_PROG" "xfs_healer"
+_require_command "$XFS_PROPERTY_PROG" "xfs_property"
 
 _scratch_mkfs >> $seqres.full
 _scratch_mount
 _require_xfs_healer $SCRATCH_MNT
+# Force xfs_healer to run even if there's no backref metadata
+$XFS_PROPERTY_PROG $SCRATCH_MNT set autofsck=check >> $seqres.full
+
 $XFS_IO_PROG -f -c "pwrite -S 0x58 0 500k" -c "fsync" $victim >> $seqres.full
 
 echo "Start healer and shut down"

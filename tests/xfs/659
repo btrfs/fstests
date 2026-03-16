@@ -26,6 +26,7 @@ _cleanup()
 _require_scratch
 _require_scrub
 _require_command "$XFS_HEALER_PROG" "xfs_healer"
+_require_command "$XFS_PROPERTY_PROG" "xfs_property"
 _require_dm_target error
 _require_no_xfs_always_cow	# no out of place writes
 
@@ -59,6 +60,8 @@ _scratch_mkfs >> $seqres.full
 #
 _scratch_mount
 _require_xfs_scratch_non_zoned
+# Force xfs_healer to run even if there's no backref metadata
+$XFS_PROPERTY_PROG $SCRATCH_MNT set autofsck=check >> $seqres.full
 _require_xfs_healer $SCRATCH_MNT
 _scratch_unmount
 

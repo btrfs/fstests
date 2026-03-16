@@ -25,6 +25,7 @@ _require_scratch
 _require_scrub
 _require_dm_target error
 _require_command "$XFS_HEALER_PROG" "xfs_healer"
+_require_command "$XFS_PROPERTY_PROG" "xfs_property"
 _require_xfs_io_command verifymedia
 
 filter_healer() {
@@ -57,6 +58,8 @@ _scratch_mkfs >> $seqres.full
 _scratch_mount
 _require_xfs_scratch_non_zoned
 _require_xfs_healer $SCRATCH_MNT
+# Force xfs_healer to run even if there's no backref metadata
+$XFS_PROPERTY_PROG $SCRATCH_MNT set autofsck=check >> $seqres.full
 _scratch_unmount
 
 _dmerror_init
