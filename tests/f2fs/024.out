@@ -1,0 +1,7 @@
+QA output created by 024
+Node ID               [0x3]
+nat_entry.block_addr  [0x1a00]
+nat_entry.version     [0x0]
+nat_entry.ino         [0x3]
+node_blk.footer.ino [0x3]
+node_blk.footer.nid [0x3]
