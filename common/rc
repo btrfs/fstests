@@ -5609,7 +5609,7 @@ _udev_wait()
 	if [ -z "$UDEV_WAIT_PROG" ]; then
 		$UDEV_SETTLE_PROG >/dev/null 2>&1
 	else
-		$UDEV_WAIT_PROG $args
+		$UDEV_WAIT_PROG --timeout 60 $args
 	fi
 }
 
