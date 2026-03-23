@@ -312,6 +312,18 @@ static int userns_fd_cb(void *data)
 	if (ret < 0)
 		return syserror("failure: write to socketpair");
 
+	/*
+	 * Wait for the parent to open our /proc/PID/ns/user before
+	 * proceeding to create the next userns level. Without this,
+	 * setresuid() in the next-level child clears the dumpable flag
+	 * on the shared mm (CLONE_VM) and the parent's open() fails the
+	 * ptrace_may_access() check with -EACCES because mm->user_ns is
+	 * init_user_ns where userns processes lack CAP_SYS_PTRACE.
+	 */
+	ret = read_nointr(h->fd_event, &c, 1);
+	if (ret < 0)
+		return syserror("failure: read from socketpair");
+
 	ret = create_userns_hierarchy(++h);
 	if (ret < 0)
 		return syserror("failure: userns level %d", h->level);
@@ -374,6 +386,14 @@ int create_userns_hierarchy(struct userns_hierarchy *h)
 	if (fd_userns < 0) {
 		kill(pid, SIGKILL);
 		syserror("failure: open userns level %d for %d", h->level, pid);
+		goto out_wait;
+	}
+
+	/* Tell the child it can now proceed to create the next level. */
+	bytes = write_nointr(fd_socket[0], "1", 1);
+	if (bytes < 0) {
+		kill(pid, SIGKILL);
+		syserror("failure: write to socketpair");
 		goto out_wait;
 	}
 
