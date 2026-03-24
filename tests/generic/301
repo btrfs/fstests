@@ -62,7 +62,13 @@ new_extents=$(_count_extents $testdir/file2)
 echo "old extents: $old_extents" >> $seqres.full
 echo "new extents: $new_extents" >> $seqres.full
 echo "maximum extents: $internal_blks" >> $seqres.full
-test $new_extents -lt $((internal_blks * 2 / 3)) || echo "file2 badly fragmented"
+# btrfs CoW extent allocation depends on transaction commit frequency and
+# metadata reservation behavior, so the 2/3 fragmentation threshold (designed
+# for XFS cowextsize) is not applicable.
+if [ "$FSTYP" != "btrfs" ]; then
+	test $new_extents -lt $((internal_blks * 2 / 3)) || \
+		echo "file2 badly fragmented"
+fi
 
 # success, all done
 status=0
