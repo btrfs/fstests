@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
 
 	filename = argv[2];
 
+	errno = 0;
 	offset = atoll(argv[3]);
 	if (offset == 0 && errno != 0) {
 		usage();
