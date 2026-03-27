@@ -737,6 +737,17 @@ _xfs_metadump_supports_rt()
 	$XFS_METADUMP_PROG --help 2>&1 | grep -q -- '-r rtdev'
 }
 
+# What block device is rt data located on for scratch?
+_xfs_get_scratch_rtdev_bdev()
+{
+	# Is the rt dev internal or not?
+	if [ -z "$SCRATCH_RTDEV" ]; then
+		echo "$SCRATCH_DEV"
+	else
+		echo "$SCRATCH_RTDEV"
+	fi
+}
+
 # Snapshot the metadata on the scratch device
 _scratch_xfs_metadump()
 {

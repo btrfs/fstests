@@ -17,15 +17,7 @@ _begin_fstest auto quick zone
 _require_scratch
 _require_realtime
 
-#
-# Figure out if the rt section is internal or not
-#
-if [ -z "$SCRATCH_RTDEV" ]; then
-	zdev=$SCRATCH_DEV
-else
-	zdev=$SCRATCH_RTDEV
-fi
-
+zdev="$(_xfs_get_scratch_rtdev_bdev)"
 _require_zoned_device $zdev
 _require_command "$BLKZONE_PROG" blkzone
 
