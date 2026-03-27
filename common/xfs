@@ -748,6 +748,23 @@ _xfs_get_scratch_rtdev_bdev()
 	fi
 }
 
+# Get a stat from /proc/self/mountstats for a specific mount point
+_xfs_get_mountstat() {
+	awk -v mount="$1" -v stat="$2" \
+		'$0~"mounted on "mount" with fstype xfs"{f=1} f&&index($0,stat){print $NF;exit}' \
+		/proc/self/mountstats
+}
+
+# Get the user available blocks for a rt mount
+_xfs_get_user_available_rt_blocks() {
+	_xfs_get_mountstat "$1" "user available RT blocks:"
+}
+
+# Check if gc is required for a rt mount
+_xfs_get_rt_gc_required () {
+	_xfs_get_mountstat "$1" "RT GC required:"
+}
+
 # Snapshot the metadata on the scratch device
 _scratch_xfs_metadump()
 {

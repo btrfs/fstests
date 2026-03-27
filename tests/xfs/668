@@ -1,0 +1,72 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 Western Digital Corporation
+#
+# FS QA Test No. 668
+#
+# Tests that writes to zonegc_low_space will trigger start of garbage
+# collection for rw (but not ro) file systems
+#
+. ./common/preamble
+_begin_fstest auto rw zone quick
+
+. ./common/zoned
+
+_require_scratch
+_require_odirect
+
+zdev="$(_xfs_get_scratch_rtdev_bdev)"
+_require_zoned_device "$zdev"
+capacity=$(_zone_capacity 0 $zdev)
+_scratch_mkfs_sized $(($capacity * 6)) > $seqres.full 2>&1
+
+# limit max open zones to avoid gc to trigger before we want it to
+export MOUNT_OPTIONS="$MOUNT_OPTIONS -o max_open_zones=2"
+_try_scratch_mount || _notrun "mount option not supported"
+_require_xfs_scratch_zoned
+
+# create three zone-sized files and invalidate 95% of the data
+for i in $(seq 1 3); do
+	filename=$SCRATCH_MNT/data_$i
+	dd if=/dev/zero of=$filename bs=1M oflag=direct\
+		count=$(($capacity / (1024 * 1024))) >> $seqres.full 2>&1
+	truncate -s $(($capacity / 20)) $filename
+done
+
+# remount read-only and set the gc limit to free up unused space
+_scratch_remount ro
+rt_available_pre="$(_xfs_get_user_available_rt_blocks "$SCRATCH_MNT")"
+_set_fs_sysfs_attr $SCRATCH_DEV "zoned/zonegc_low_space" 100
+
+# reclaiming a zone with 5% used blocks should take way less than 1 second
+sleep 1
+
+# gc should not run for read only file systems
+rt_available_post="$(_xfs_get_user_available_rt_blocks "$SCRATCH_MNT")"
+[ "$rt_available_post" -gt "$rt_available_pre" ] && \
+	_fail "gc should not run while read only"
+
+_set_fs_sysfs_attr $SCRATCH_DEV "zoned/zonegc_low_space" 0
+
+# remount rw and check that gc starts, frees up blocks and stops after
+# the threshold is set to reclaim the unused blocks
+_scratch_remount rw
+
+rt_available_pre="$(_xfs_get_user_available_rt_blocks "$SCRATCH_MNT")"
+_set_fs_sysfs_attr $SCRATCH_DEV "zoned/zonegc_low_space" 100
+
+i=0
+while [ $(_xfs_get_rt_gc_required "$SCRATCH_MNT") -eq "1" ]; do
+	sleep 1
+	let i=$i+1
+	[ $i -gt 3 ] && _fail "gc did not complete within a reasonable time"
+done
+
+rt_available_post="$(_xfs_get_user_available_rt_blocks "$SCRATCH_MNT")"
+[ "$rt_available_pre" -ge "$rt_available_post" ] && \
+	_fail "gc did not free up space"
+
+echo "Silence is golden"
+status=0
+
+exit
