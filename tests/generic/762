@@ -10,7 +10,7 @@
 . ./common/preamble
 _begin_fstest auto quota prealloc
 
-_fixed_by_git_commit kernel XXXXXXXXXXXXXX \
+_fixed_by_fs_commit xfs 4b8d867ca6e2 \
 	"xfs: don't over-report free space or inodes in statvfs"
 
 . ./common/filter

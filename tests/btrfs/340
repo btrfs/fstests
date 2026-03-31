@@ -10,7 +10,7 @@
 . ./common/preamble
 _begin_fstest auto quick qgroup
 
-_fixed_by_kernel_commit xxxxxxxxxxxx \
+_fixed_by_kernel_commit 68d4b3fa18d7 \
 	"btrfs: qgroup: update all parent qgroups when doing quick inherit"
 
 # For the automatic fsck at unmount.

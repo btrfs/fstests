@@ -17,7 +17,7 @@ _require_scratch
 _require_btrfs_support_sectorsize 4096
 _require_btrfs_command "property"
 
-_fixed_by_kernel_commit xxxxxxxxxxxx \
+_fixed_by_kernel_commit e1b18b959025 \
 	"btrfs: fix transaction abort when snapshotting received subvolumes"
 
 # Use a 4K node/leaf size to make the test faster.

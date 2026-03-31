@@ -16,7 +16,7 @@ _require_test_program t_btrfs_received_uuid_ioctl
 _require_scratch
 _require_btrfs_support_sectorsize 4096
 
-_fixed_by_kernel_commit xxxxxxxxxxxx \
+_fixed_by_kernel_commit 87f2c46003fc \
 	"btrfs: fix transaction abort on set received ioctl due to item overflow"
 
 # Use a 4K node/leaf size to make the test faster.

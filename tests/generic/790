@@ -27,7 +27,7 @@ _cleanup()
 _require_scratch
 _require_dm_target flakey
 
-_fixed_by_fs_commit btrfs xxxxxxxxxxxx \
+_fixed_by_fs_commit btrfs 9573a365ff9f \
 	"btrfs: log new dentries when logging parent dir of a conflicting inode"
 
 _scratch_mkfs >>$seqres.full 2>&1 || _fail "mkfs failed"

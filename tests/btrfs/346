@@ -14,7 +14,7 @@ _begin_fstest auto quick subvol
 _require_scratch
 _require_btrfs_support_sectorsize 4096
 
-_fixed_by_kernel_commit xxxxxxxxxxxx \
+_fixed_by_kernel_commit 2d1ababdedd4 \
 	"btrfs: fix transaction abort on file creation due to name hash collision"
 
 # Use a 4K node/leaf size to make the test faster and require less file names

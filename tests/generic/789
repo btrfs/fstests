@@ -24,7 +24,7 @@ _cleanup()
 _require_scratch
 _require_dm_target flakey
 
-_fixed_by_fs_commit btrfs xxxxxxxxxxxx \
+_fixed_by_fs_commit btrfs 5254d4181add \
 	"btrfs: fix zero size inode with non-zero size after log replay"
 
 _scratch_mkfs >>$seqres.full 2>&1 || _fail "mkfs failed"
