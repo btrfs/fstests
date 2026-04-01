@@ -33,10 +33,18 @@ test_attr_replay()
 	# Inject error
 	_scratch_inject_error $error_tag
 
-	# Set attribute, being careful not to include the trailing newline
-	# in the attr value.
-	echo -n "$attr_value" | ${ATTR_PROG} -$flag "$attr_name" $testfile 2>&1 | \
-			    _filter_scratch
+	# Set attribute. For zero-length values, use -V "" explicitly to
+	# avoid relying on stdin EOF behavior which is undefined for empty
+	# values. Otherwise, being careful not to include the trailing
+	# newline in the attr value.
+	if [ "$flag" = "s" ] && [ -z "$attr_value" ]; then
+		${ATTR_PROG} -s "$attr_name" -V "" $testfile 2>&1 | \
+			_filter_scratch
+	else
+		echo -n "$attr_value" | ${ATTR_PROG} -$flag "$attr_name" \
+			$testfile 2>&1 | _filter_scratch
+	fi
+
 
 	# FS should be shut down, touch will fail
 	touch $testfile 2>&1 | _filter_scratch
@@ -147,6 +155,11 @@ create_test_file inline_file3 1 $attr16
 test_attr_replay inline_file3 "attr_name2" $attr64k "s" "larp"
 test_attr_replay inline_file3 "attr_name2" $attr64k "r" "larp"
 
+# extent, zero-length value
+create_test_file extent_file0 1 $attr1k
+test_attr_replay extent_file0 "attr_name2" "" "s" "larp"
+test_attr_replay extent_file0 "attr_name2" "" "r" "larp"
+
 # extent, internal
 create_test_file extent_file1 1 $attr1k
 test_attr_replay extent_file1 "attr_name2" $attr1k "s" "larp"
@@ -164,6 +177,11 @@ test_attr_replay extent_file3 "attr_name4" $attr256 "s" "attr_leaf_to_node"
 create_test_file extent_file4 1 $attr1k
 test_attr_replay extent_file4 "attr_name2" $attr64k "s" "larp"
 test_attr_replay extent_file4 "attr_name2" $attr64k "r" "larp"
+
+# remote, zero-length value
+create_test_file remote_file0 1 $attr64k
+test_attr_replay remote_file0 "attr_name2" "" "s" "larp"
+test_attr_replay remote_file0 "attr_name2" "" "r" "larp"
 
 # remote, internal
 create_test_file remote_file1 1 $attr64k
