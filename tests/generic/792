@@ -1,0 +1,69 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 SUSE S.A.  All Rights Reserved.
+#
+# FS QA Test 792
+#
+# Test that if we fsync a directory that became empty after removing it and we
+# have a power failure, we are able to mount the filesystem and the directory
+# does not exists anymore.
+#
+. ./common/preamble
+_begin_fstest auto quick log
+
+_cleanup()
+{
+	_cleanup_flakey
+	cd /
+	rm -r -f $tmp.*
+}
+
+. ./common/filter
+. ./common/dmflakey
+
+_require_scratch
+_require_test_program unlink-fsync
+_require_dm_target flakey
+
+_fixed_by_fs_commit btrfs xxxxxxxxxxxx \
+	"btrfs: fix missing last_unlink_trans update when removing a directory"
+
+_scratch_mkfs >> $seqres.full 2>&1 || _fail "mkfs failed"
+_require_metadata_journaling $SCRATCH_DEV
+_init_flakey
+_scratch_mount
+
+# Create our first directory and define its permissions (we will later change
+# them).
+mkdir $SCRATCH_MNT/dir1
+chmod a+rwx $SCRATCH_MNT/dir1
+
+# Created another directory inside that first directoy and then another one at
+# the top level.
+mkdir $SCRATCH_MNT/dir1/dir2
+mkdir $SCRATCH_MNT/dir3
+
+# Persist everything done so far.
+_scratch_sync
+
+# Do some change to the first directory, like change its permissions, fsync it.
+chmod o-rwx $SCRATCH_MNT/dir1
+$XFS_IO_PROG -c "fsync" $SCRATCH_MNT/dir1
+
+# Now move the second directory from dir1 to dir3, so that dir1 becomes empty.
+mv $SCRATCH_MNT/dir1/dir2 $SCRATCH_MNT/dir3/
+
+# Now open an fd for dir1, rmdir it and fsync it before closing the fd.
+$here/src/unlink-fsync $SCRATCH_MNT/dir1
+
+# Simulate a power failure and replay the log/journal.
+# The mount should succeed, dir1 must not exist anymore and dir2 must now be
+# inside dir3.
+_flakey_drop_and_remount
+
+echo -e "Filesystem content after power failure:\n"
+# Exclude 'lost+found' dir from ext4 and last line if it's blank (due to removal
+# of 'lost+found').
+ls -R $SCRATCH_MNT/ | grep -v 'lost+found' | sed -e '${/^$/d;}' | _filter_scratch
+
+_exit 0
