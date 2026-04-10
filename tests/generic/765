@@ -94,16 +94,17 @@ test_atomic_writes()
     _scratch_unmount
 }
 
-sys_min_write=$(cat "/sys/block/$(_short_dev $SCRATCH_DEV)/queue/atomic_write_unit_min_bytes")
-sys_max_write=$(cat "/sys/block/$(_short_dev $SCRATCH_DEV)/queue/atomic_write_unit_max_bytes")
+queue_path=$(_sysfs_queue_path $SCRATCH_DEV)
+sys_min_write=$(cat "$queue_path/atomic_write_unit_min_bytes")
+sys_max_write=$(cat "$queue_path/atomic_write_unit_max_bytes")
 
 bdev_min_write=$(_get_atomic_write_unit_min $SCRATCH_DEV)
 bdev_max_write=$(_get_atomic_write_unit_max $SCRATCH_DEV)
 
 echo "sysfs awu_min $sys_min_write" >> $seqres.full
-echo "sysfs awu_min $sys_max_write" >> $seqres.full
+echo "sysfs awu_max $sys_max_write" >> $seqres.full
 echo "bdev awu_min $bdev_min_write" >> $seqres.full
-echo "bdev awu_min $bdev_max_write" >> $seqres.full
+echo "bdev awu_max $bdev_max_write" >> $seqres.full
 
 # Test that statx atomic values are the same as sysfs values
 if [ "$sys_min_write" -ne "$bdev_min_write" ]; then
