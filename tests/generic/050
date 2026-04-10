@@ -46,6 +46,18 @@ elif [ "$FSTYP" = "btrfs" ]; then
 	# So for this test case, btrfs will not get any dirty log tree thus
 	# it can be treated as "nojournal".
 	features="nojournal"
+elif [ "$FSTYP" = "f2fs" ]; then
+	# F2FS uses a checkpoint mechanism for metadata consistency rather than a
+	# traditional journal. Roll-forward recovery is only needed if there are
+	# fsync'd files since the last checkpoint.
+	#
+	# In this test case, files are created without fsync, so there is no
+	# roll-forward data to replay during mount.
+	#
+	# Therefore, F2FS does not need to write to the device to recover, and
+	# successfully mounts on the read-only block device. Thus, it should be
+	# treated as "nojournal" in this case.
+	features="nojournal"
 fi
 _link_out_file "$features"
 
