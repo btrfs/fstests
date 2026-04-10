@@ -31,10 +31,19 @@ _require_aiodio
 FIO_LOAD=$(($(nproc) * 2 * LOAD_FACTOR))
 SIZE=$((100*1024*1024))
 
-# Calculate fsblocksize as per bdev atomic write units.
-bdev_awu_min=$(_get_atomic_write_unit_min $SCRATCH_DEV)
-bdev_awu_max=$(_get_atomic_write_unit_max $SCRATCH_DEV)
-bs=$(_max 4096 "$bdev_awu_min")
+_scratch_mkfs > /dev/null 2>&1 || \
+	_notrun "mkfs failed"
+_try_scratch_mount || \
+	_notrun "mount failed"
+
+touch $SCRATCH_MNT/f
+
+fs_awu_min=$(_get_atomic_write_unit_min $SCRATCH_MNT/f)
+fs_awu_max=$(_get_atomic_write_unit_max $SCRATCH_MNT/f)
+bs=$(_max 4096 "$fs_awu_min")
+ps=$(_get_page_size)
+
+_scratch_unmount
 
 function create_fio_configs()
 {
@@ -97,10 +106,11 @@ run_test_one() {
 	local cs=$2
 	local iosize=$3
 
+	echo "== Testing: bs=$bs cs=$cs iosize=$iosize ==" >> $seqres.full
+
 	MKFS_OPTIONS="-O bigalloc -b $bs -C $cs"
 	_scratch_mkfs_ext4  >> $seqres.full 2>&1 || return
 	if _try_scratch_mount >> $seqres.full 2>&1; then
-		echo "== Testing: bs=$bs cs=$cs iosize=$iosize ==" >> $seqres.full
 
 		touch $SCRATCH_MNT/f1
 		create_fio_configs $iosize
@@ -127,7 +137,7 @@ run_test() {
 	# cluster sizes above 16 x blocksize are experimental so avoid them
 	# Also, cap cluster size at 128kb to keep it reasonable for large
 	# blocks size
-	max_cs=$(_min $((16 * bs)) "$bdev_awu_max" $((128 * 1024)))
+	max_cs=$(_min $((16 * bs)) "$fs_awu_max" $((128 * 1024)))
 
 	# Fuzz for combinations of blocksize, clustersize and
 	# iosize that cover most of the cases
@@ -145,8 +155,10 @@ fio_out=$tmp.fio.out
 create_fio_configs $bs
 _require_fio $fio_aw_config
 
-for ((bs=$bs; bs <= $(_get_page_size); bs = $bs << 1)); do
-	run_test $bs
+echo "Awu min: $fs_awu_min Awu max: $fs_awu_max" >> $seqres.full
+
+for ((bs=$fs_awu_min; bs <= $(_min ps fs_awu_max); bs = $bs << 1)); do
+	run_test $bs $cs $iosize
 done
 
 # success, all done
