@@ -5172,6 +5172,30 @@ _sysfs_dev()
 	echo /sys/dev/block/$maj:$min
 }
 
+# Get the sysfs queue path for a block device, handling partitions correctly.
+_sysfs_queue_path()
+{
+	local dev parent
+	dev=$(_short_dev "$1")
+
+	# For partitions, queue details are in the parent device's sysfs dir
+	if [ -e "/sys/class/block/$dev/partition" ]; then
+		parent=$(basename "$(readlink -f /sys/class/block/$dev/..)")
+	else
+		parent="$dev"
+	fi
+
+	local queue_path="/sys/block/$parent/queue"
+
+	# Verify the path exists before returning
+	if [ -e "$queue_path" ]; then
+		echo "$queue_path"
+		return 0
+	else
+		return 1
+	fi
+}
+
 # Get the minimum block size of a file.  Usually this is the
 # minimum fs block size, but some filesystems (ocfs2) do block
 # mappings in larger units.
