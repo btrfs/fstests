@@ -37,16 +37,18 @@ __generate_blockdev_report_vars() {
 
 	test -z "$bdev" && return
 	test -b "$bdev" || return
-	local sysfs_bdev="$(_sysfs_dev "$bdev")"
-
 	REPORT_VARS["${bdev_var}_SIZE_KB"]="$(( "$(blockdev --getsz "$bdev")" / 2 ))"
-	REPORT_VARS["${bdev_var}_ROTATIONAL"]="$(cat "$sysfs_bdev/queue/rotational" 2>/dev/null)"
-	REPORT_VARS["${bdev_var}_DAX"]="$(cat "$sysfs_bdev/queue/dax" 2>/dev/null)"
-	REPORT_VARS["${bdev_var}_DISCARD"]="$(sed -e 's/[1-9][0-9]*/1/g' "$sysfs_bdev/queue/discard_max_bytes" 2>/dev/null)"
-	REPORT_VARS["${bdev_var}_WRITE_ZEROES"]="$(sed -e 's/[1-9][0-9]*/1/g' "$sysfs_bdev/queue/write_zeroes_max_bytes" 2>/dev/null)"
-	REPORT_VARS["${bdev_var}_PHYS_BLOCK_BYTES"]="$(cat "$sysfs_bdev/queue/physical_block_size" 2>/dev/null)"
-	REPORT_VARS["${bdev_var}_LBA_BYTES"]="$(cat "$sysfs_bdev/queue/logical_block_size" 2>/dev/null)"
-	REPORT_VARS["${bdev_var}_ZONES"]="$(cat "$sysfs_bdev/queue/nr_zones" 2>/dev/null)"
+
+	local queue_path="$(_sysfs_queue_path "$bdev")"
+	if [ $? -eq 0 ]; then
+		REPORT_VARS["${bdev_var}_ROTATIONAL"]="$(cat "$queue_path/rotational" 2>/dev/null)"
+		REPORT_VARS["${bdev_var}_DAX"]="$(cat "$queue_path/dax" 2>/dev/null)"
+		REPORT_VARS["${bdev_var}_DISCARD"]="$(sed -e 's/[1-9][0-9]*/1/g' "$queue_path/discard_max_bytes" 2>/dev/null)"
+		REPORT_VARS["${bdev_var}_WRITE_ZEROES"]="$(sed -e 's/[1-9][0-9]*/1/g' "$queue_path/write_zeroes_max_bytes" 2>/dev/null)"
+		REPORT_VARS["${bdev_var}_PHYS_BLOCK_BYTES"]="$(cat "$queue_path/physical_block_size" 2>/dev/null)"
+		REPORT_VARS["${bdev_var}_LBA_BYTES"]="$(cat "$queue_path/logical_block_size" 2>/dev/null)"
+		REPORT_VARS["${bdev_var}_ZONES"]="$(cat "$queue_path/nr_zones" 2>/dev/null)"
+	fi
 }
 
 __import_report_vars() {

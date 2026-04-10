@@ -2502,7 +2502,11 @@ __scratch_dev_has_dax()
 {
 	local sysfs="/sys/block/$(_short_dev $SCRATCH_DEV)"
 	test -e "${sysfs}/dax" && return 0
-	test "$(cat "${sysfs}/queue/dax" 2>/dev/null)" = "1" && return 0
+
+	local queue_path=$(_sysfs_queue_path $SCRATCH_DEV)
+	if [ $? -eq 0 ]; then
+		test "$(cat "${queue_path}/dax" 2>/dev/null)" = "1" && return 0
+	fi
 
 	return 1
 }
@@ -2562,10 +2566,10 @@ _zone_type()
 		echo "Usage: _zone_type <device>"
 		_exit 1
 	fi
-	local sdev=`_short_dev $target`
 
-	if [ -e /sys/block/${sdev}/queue/zoned ]; then
-		cat /sys/block/${sdev}/queue/zoned
+	local queue_path=$(_sysfs_queue_path $target)
+	if [ $? -eq 0 ] && [ -e "$queue_path/zoned" ]; then
+		cat "$queue_path/zoned"
 	else
 		echo none
 	fi

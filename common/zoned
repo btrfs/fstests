@@ -17,8 +17,9 @@ _filter_blkzone_report()
 
 _require_limited_active_zones() {
     local dev=$1
-    local sysfs=$(_sysfs_dev ${dev})
-    local attr="${sysfs}/queue/max_active_zones"
+    local queue_path=$(_sysfs_queue_path ${dev})
+    [ $? -ne 0 ] && _notrun "cannot find queue path: $queue_path"
+    local attr="${queue_path}/max_active_zones"
 
     [ -e "${attr}" ] || _notrun "cannot find queue/max_active_zones. Maybe non-zoned device?"
     if [ $(cat "${attr}") == 0 ]; then

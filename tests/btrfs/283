@@ -26,7 +26,9 @@ _wants_kernel_commit c7499a64dcf6 \
 
 extent_size=$(( 128 * 1024 ))
 if _scratch_btrfs_is_zoned; then
-	zone_append_max=$(cat "/sys/block/$(_short_dev $SCRATCH_DEV)/queue/zone_append_max_bytes")
+	queue_path=$(_sysfs_queue_path $SCRATCH_DEV) ||
+	    _notrun "Couldn't find queue path for zoned device"
+	zone_append_max=$(cat "$queue_path/zone_append_max_bytes")
 	if [[ $zone_append_max -gt 0 && $zone_append_max -lt $extent_size ]]; then
 		_notrun "zone append max $zone_append_max is smaller than wanted extent size $extent_size"
 	fi

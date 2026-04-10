@@ -28,10 +28,13 @@ _fixed_by_kernel_commit 4bcbb3325513 \
 # An extent size can be up to BTRFS_MAX_UNCOMPRESSED
 max_extent_size=$(( 128 * 1024 ))
 if _scratch_btrfs_is_zoned; then
-	zone_append_max=$(cat "/sys/block/$(_short_dev $SCRATCH_DEV)/queue/zone_append_max_bytes")
-	if [[ $zone_append_max -gt 0 && $zone_append_max -lt $max_extent_size ]]; then
-		# Round down to PAGE_SIZE
-		max_extent_size=$(( $zone_append_max / 4096 * 4096 ))
+	queue_path=$(_sysfs_queue_path $SCRATCH_DEV)
+	if [ $? -eq 0 ]; then
+		zone_append_max=$(cat "$queue_path/zone_append_max_bytes")
+		if [[ $zone_append_max -gt 0 && $zone_append_max -lt $max_extent_size ]]; then
+			# Round down to PAGE_SIZE
+			max_extent_size=$(( $zone_append_max / 4096 * 4096 ))
+		fi
 	fi
 fi
 file_size=$(( 10 * 1024 * 1024 ))

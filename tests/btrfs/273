@@ -38,7 +38,9 @@ _require_btrfs_command inspect-internal dump-tree
 # enabled.
 _require_no_compress
 
-max_active=$(cat $(_sysfs_dev ${SCRATCH_DEV})/queue/max_active_zones)
+queue_path=$(_sysfs_queue_path ${SCRATCH_DEV}) || \
+    _notrun "Failed to get queue path: $queue_path"
+max_active=$(cat "$queue_path/max_active_zones")
 
 # Fill the zones leaving the last 1MB
 fill_active_zones() {

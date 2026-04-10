@@ -173,11 +173,8 @@ _require_hw_wrapped_key_support()
 	local dev=$1
 
 	echo "Checking for HW-wrapped key support on $dev" >> $seqres.full
-	local sysfs_dir=$(_sysfs_dev $dev)
-	if [ ! -e $sysfs_dir/queue ]; then
-		sysfs_dir=$sysfs_dir/..
-	fi
-	if [ ! -e $sysfs_dir/queue/crypto/hw_wrapped_keys ]; then
+	local queue_path=$(_sysfs_queue_path $dev)
+	if [ $? -ne 0 ] || [ ! -e $queue_path/crypto/hw_wrapped_keys ]; then
 		_notrun "$dev doesn't support hardware-wrapped inline encryption keys"
 	fi
 

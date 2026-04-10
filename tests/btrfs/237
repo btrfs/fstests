@@ -44,8 +44,9 @@ get_data_bg_physical()
 $BLKZONE_PROG report $SCRATCH_DEV | grep -q -e "nw" && \
 	_notrun "test is unreliable on devices with conventional zones"
 
-sdev="$(_short_dev $SCRATCH_DEV)"
-zone_size=$(($(cat /sys/block/${sdev}/queue/chunk_sectors) << 9))
+queue_path=$(_sysfs_queue_path $SCRATCH_DEV) || \
+    _notrun "Failed to get queue path: $queue_path"
+zone_size=$(($(cat "$queue_path/chunk_sectors") << 9))
 fssize=$((zone_size * 16))
 devsize=$(($(_get_device_size $SCRATCH_DEV) * 1024))
 # Create a minimal FS to kick the reclaim process
