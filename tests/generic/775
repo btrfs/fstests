@@ -41,7 +41,8 @@ prep_mixed_mapping() {
 
 	local operations=("W" "H" "U")
 	local num_blocks=$((awu_max / blksz))
-	for ((i=0; i<num_blocks; i++)); do
+	local blkno
+	for ((blkno=0; blkno<num_blocks; blkno++)); do
 		local index=$((RANDOM % ${#operations[@]}))
 		local map="${operations[$index]}"
 		local mapping="${mapping}${map}"
