@@ -64,7 +64,8 @@ test_atomic_writes()
     local bsize=$1
 
     get_mkfs_opts $bsize
-    _scratch_mkfs $mkfs_opts >> $seqres.full
+    _scratch_mkfs $mkfs_opts &>> $seqres.full || \
+        echo "mkfs $mkfs_opts failed"
     _scratch_mount
 
     test "$FSTYP" = "xfs" && _xfs_force_bdev data $SCRATCH_MNT
