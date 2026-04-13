@@ -41,7 +41,7 @@ exec {test_fd}> $testfile
 if [ "$FSTESTS_ISOL" = "privatens" ]; then
 	move_proc="$tmp.procdir"
 	mkdir -p "$move_proc"
-	mount --move /proc "$move_proc"
+	_mount --move /proc "$move_proc"
 fi
 flock -x $test_fd
 cat /proc/locks >> $seqres.full
@@ -50,7 +50,7 @@ cat /proc/locks >> $seqres.full
 grep -q ":$tf_inode " /proc/locks || echo "lock info not found"
 
 if [ -n "$move_proc" ]; then
-	mount --move "$move_proc" /proc
+	_mount --move "$move_proc" /proc
 fi
 
 # success, all done

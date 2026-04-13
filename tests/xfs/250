@@ -57,7 +57,7 @@ _test_loop()
 
 	echo "*** mount loop filesystem"
 	loop_dev=$(_create_loop_device $LOOP_IMG)
-	mount $loop_dev $LOOP_MNT
+	_mount $loop_dev $LOOP_MNT
 
 	echo "*** preallocate large file"
 	$XFS_IO_PROG -f -c "resvsp 0 $fsize" $LOOP_MNT/foo | _filter_io

@@ -49,7 +49,7 @@ _check_no_mount()
 _check_require_logdev()
 {
     echo "    *** mount without logdev (expect failure)"
-    if mount -t xfs $SCRATCH_DEV $SCRATCH_MNT >$tmp.err 2>&1
+    if _mount -t xfs $SCRATCH_DEV $SCRATCH_MNT >$tmp.err 2>&1
     then
         cat $tmp.err
         echo "        !!! mount succeeded (expecting failure)"

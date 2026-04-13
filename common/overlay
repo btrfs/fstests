@@ -29,13 +29,13 @@ _overlay_mount_dirs()
 	[ -n "$upperdir" ] && [ "$upperdir" != "-" ] && \
 		diropts+=",upperdir=$upperdir,workdir=$workdir"
 
-	$MOUNT_PROG -t overlay $diropts `_common_dev_mount_options $*`
+	_mount -t overlay $diropts `_common_dev_mount_options $*`
 }
 
 # Mount with mnt/dev of scratch mount and custom mount options
 _overlay_scratch_mount_opts()
 {
-	$MOUNT_PROG -t overlay $OVL_BASE_SCRATCH_MNT $SCRATCH_MNT $*
+	_mount -t overlay $OVL_BASE_SCRATCH_MNT $SCRATCH_MNT $*
 }
 
 # Mount with same options/mnt/dev of scratch mount, but optionally
@@ -130,7 +130,7 @@ _overlay_scratch_mount()
 		# By default, libmount merges remount options with old mount options.
 		# overlayfs does not support re-configuring the same mount options.
 		# We workaround this problem with --options-mode ignore.
-		$MOUNT_PROG $SCRATCH_MNT --options-mode ignore $*
+		_mount $SCRATCH_MNT --options-mode ignore $*
 		return
 	fi
 

@@ -86,7 +86,7 @@ loop_dev=$(_create_loop_device $loop_file)
 
 _mkfs_dev -d cowextsize=$MAXEXTLEN -l size=256m $loop_dev >> $seqres.full
 mkdir $loop_mount
-mount $loop_dev $loop_mount
+_mount $loop_dev $loop_mount
 
 echo "Create crazy huge file"
 huge_file="$loop_mount/a"

@@ -44,7 +44,7 @@ $MKFS_EXT4_PROG -F -t ext3 -b $BLOCK_SIZE $SCRATCH_DEV > $seqres.full 2>&1 || \
 	_notrun "Could not create ext3 filesystem"
 
 # mount and populate non-extent file
-mount -t ext3 $SCRATCH_DEV $SCRATCH_MNT
+_mount -t ext3 $SCRATCH_DEV $SCRATCH_MNT
 if [ $? -ne 0 -a $BLOCK_SIZE -gt $(_get_page_size) ]; then
 	_notrun "block size $BLOCK_SIZE is not supported by ext3"
 fi
@@ -57,7 +57,7 @@ $TUNE2FS_PROG -O extents,uninit_bg,dir_index $SCRATCH_DEV >> $seqres.full 2>&1
 $E2FSCK_PROG -fyD $SCRATCH_DEV >> $seqres.full 2>&1
 
 # mount and populate extent file
-mount -t ext4 $SCRATCH_DEV $SCRATCH_MNT
+_mount -t ext4 $SCRATCH_DEV $SCRATCH_MNT
 populate_data "$SCRATCH_MNT/ext3_ext4_data/ext4"
 
 # Compute md5 of ext3,ext4 files.

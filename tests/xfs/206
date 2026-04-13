@@ -75,7 +75,7 @@ echo "=== mkfs.xfs ==="
 mkfs.xfs -f -bsize=4096 -l size=32m -dagsize=76288719b,size=3905982455b \
 	 $tmpfile  | mkfs_filter
 
-mount -o loop $tmpfile $tmpdir || _fail "!!! failed to loopback mount"
+_mount -o loop $tmpfile $tmpdir || _fail "!!! failed to loopback mount"
 
 # see what happens when we growfs it
 echo "=== xfs_growfs ==="

@@ -21,7 +21,7 @@ _cleanup()
 
 	if [ -w $seqres.full ]; then
 		echo "--- mounts at end (after cleanup)" >> $seqres.full
-		mount >> $seqres.full
+		_mount >> $seqres.full
 	fi
 }
 
@@ -47,14 +47,14 @@ echo "(dev=$SCRATCH_DEV, mount=$SCRATCH_MNT)" >> $seqres.full
 echo "" >> $seqres.full
 
 echo "--- mounts" >> $seqres.full
-mount >> $seqres.full
+_mount >> $seqres.full
 
 _log "Create ext2 fs on scratch"
 mkfs -t ext2 -F $SCRATCH_DEV >> $seqres.full 2>&1 \
     || _fail "!!! failed to mkfs ext2"
 
 _log "Mount ext2 fs on scratch"
-mount -t ext2 $SCRATCH_DEV $SCRATCH_MNT >> $seqres.full 2>&1 \
+_mount -t ext2 $SCRATCH_DEV $SCRATCH_MNT >> $seqres.full 2>&1 \
     || _fail "!!! failed to mount"
 
 _log "Create xfs fs in file on scratch"
@@ -114,7 +114,7 @@ _destroy_loop_device $loop_dev1
 unset loop_dev1
 
 echo "--- mounts at end (before cleanup)" >> $seqres.full
-mount >> $seqres.full
+_mount >> $seqres.full
 
 # success, all done
 status=0

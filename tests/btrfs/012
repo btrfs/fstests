@@ -41,7 +41,7 @@ export SELINUX_MOUNT_OPTIONS=""
 $MKFS_EXT4_PROG -F -b $BLOCK_SIZE $SCRATCH_DEV > $seqres.full 2>&1 || \
 	_notrun "Could not create ext4 filesystem"
 # Manual mount so we don't use -t btrfs or selinux context
-mount -t ext4 $SCRATCH_DEV $SCRATCH_MNT
+_mount -t ext4 $SCRATCH_DEV $SCRATCH_MNT
 if [ $? -ne 0 -a $BLOCK_SIZE -gt $(_get_page_size) ]; then
 	_notrun "block size $BLOCK_SIZE is not supported by ext4"
 fi
@@ -68,7 +68,7 @@ $E2FSCK_PROG -fn $SCRATCH_MNT/ext2_saved/image >> $seqres.full 2>&1 || \
 
 # And the files in that image should match
 mkdir -p $SCRATCH_MNT/mnt
-mount -o loop $SCRATCH_MNT/ext2_saved/image $SCRATCH_MNT/mnt || \
+_mount -o loop $SCRATCH_MNT/ext2_saved/image $SCRATCH_MNT/mnt || \
 	_fail "could not loop mount saved ext4 image"
 
 echo "Checking saved ext2 image against the original one:"
@@ -90,7 +90,7 @@ $E2FSCK_PROG -fn $SCRATCH_DEV >> $seqres.full 2>&1 || \
         _fail "restored ext4 image is corrupt"
 
 # Mount the un-converted ext4 device & check the contents
-mount -t ext4 $SCRATCH_DEV $SCRATCH_MNT
+_mount -t ext4 $SCRATCH_DEV $SCRATCH_MNT
 echo "Checking rolled back ext2 against the original one:"
 $FSSUM_PROG -r $tmp.original $SCRATCH_MNT/$BASENAME
 

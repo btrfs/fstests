@@ -27,7 +27,7 @@ getenforce | grep -q "Enforcing\|Permissive" || _notrun "SELinux not enabled"
 _scratch_mkfs_xfs -m crc=0 -i size=256 >> $seqres.full 2>&1
 
 # Manually mount to avoid fs-wide context set by default in xfstests
-mount $SCRATCH_DEV $SCRATCH_MNT
+_mount $SCRATCH_DEV $SCRATCH_MNT
 
 touch $SCRATCH_MNT/$seq.test
 

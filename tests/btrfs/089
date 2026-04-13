@@ -29,7 +29,7 @@ $BTRFS_UTIL_PROG subvolume set-default $testvol_id "$SCRATCH_MNT" >>$seqres.full
 # Bind-mount a directory under the default subvolume.
 mkdir "$SCRATCH_MNT/testvol/testdir"
 mkdir "$SCRATCH_MNT/testvol/mnt"
-mount --bind "$SCRATCH_MNT/testvol/testdir" "$SCRATCH_MNT/testvol/mnt"
+_mount --bind "$SCRATCH_MNT/testvol/testdir" "$SCRATCH_MNT/testvol/mnt"
 
 # Now attempt to delete the default subvolume.
 $BTRFS_UTIL_PROG subvolume delete "$SCRATCH_MNT/testvol" >>$seqres.full 2>&1

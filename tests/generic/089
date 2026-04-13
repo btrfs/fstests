@@ -34,7 +34,7 @@ cd $TEST_DIR
 rm -fr test
 mkdir test || exit 1
 cd $TEST_DIR/test
-mount > t_mtab
+_mount > t_mtab
 
 mtab()
 {

@@ -66,7 +66,7 @@ $XFS_IO_PROG -f -c "pwrite 0 512" $SYMLINK | _filter_xfs_io
 $XFS_IO_PROG -t -c "pwrite 0 512" $SYMLINK | _filter_xfs_io
 
 echo "== write to bind-mounted rw file on ro fs"
-mount --bind $TARGET $BINDFILE
+_mount --bind $TARGET $BINDFILE
 # with and without -f (adds O_CREAT)
 $XFS_IO_PROG -c "pwrite 0 512" $BINDFILE | _filter_xfs_io
 $XFS_IO_PROG -f -c "pwrite 0 512" $BINDFILE | _filter_xfs_io

@@ -82,7 +82,7 @@ $XFS_IO_PROG -c "exchangerange $SCRATCH_MNT/c" $dir/a
 
 echo Files on different mounts
 mkdir -p $SCRATCH_MNT/xyz
-mount --bind $dir $SCRATCH_MNT/xyz --bind
+_mount --bind $dir $SCRATCH_MNT/xyz --bind
 _pwrite_byte 0x60 0 $((blksz * (nrblks + 2))) $dir/c >> $seqres.full
 $XFS_IO_PROG -c "exchangerange $SCRATCH_MNT/xyz/c" $dir/a
 _unmount $SCRATCH_MNT/xyz

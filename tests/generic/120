@@ -29,7 +29,7 @@ _compare_access_times()
 		cat $tmp.out
 		echo "---------------------------------------------------"
 		$here/src/lstat64 $1
-		mount | grep $SCRATCH_MNT
+		_mount | grep $SCRATCH_MNT
 	fi
 
 }

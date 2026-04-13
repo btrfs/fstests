@@ -49,7 +49,7 @@ $BTRFS_UTIL_PROG balance start -mconvert=raid1 $SCRATCH_MNT 2>&1 |\
 
 _scratch_unmount
 
-$MOUNT_PROG -t btrfs -odegraded ${devs[0]} $SCRATCH_MNT
+_mount -t btrfs -odegraded ${devs[0]} $SCRATCH_MNT
 
 $BTRFS_UTIL_PROG device remove --force missing $SCRATCH_MNT >> $seqres.full
 $BTRFS_UTIL_PROG balance start --full-balance $SCRATCH_MNT >> $seqres.full
