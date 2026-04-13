@@ -16,15 +16,19 @@ _begin_fstest auto quick mkfs
 IMG_SIZE="512M"
 IMG_FILE="$TEST_DIR/xfs_reproducible_test.img"
 PROTO_DIR="$TEST_DIR/proto"
+MNT_DIR="$TEST_DIR/mnt"
 
 # Fixed values for reproducibility
 FIXED_UUID="12345678-1234-1234-1234-123456789abc"
 FIXED_EPOCH="1234567890"
 
+rm -r -f "$MNT_DIR"
+mkdir -p "$MNT_DIR"
+
 _cleanup() {
 	cd /
 	command -v _kill_fsstress &>/dev/null && _kill_fsstress
-	rm -r -f $tmp.* "$PROTO_DIR" "$IMG_FILE"
+	rm -r -f $tmp.* "$PROTO_DIR" "$MNT_DIR" "$IMG_FILE"
 }
 
 # Check if mkfs.xfs supports required options
@@ -149,6 +153,22 @@ _run_iteration()
 	echo $hash
 }
 
+_test_iteration()
+{
+	local iteration=$1
+
+	echo "Iteration $iteration: Checking directory tree" >> $seqres.full
+	if ! _mount "$IMG_FILE" "$MNT_DIR"; then
+		echo "Failed to mount filesystem during iteration $iteration"
+		return
+	fi
+
+	diff -Naur --no-dereference "$PROTO_DIR" "$MNT_DIR" 2>/dev/null | \
+		grep -v -E '(special file|fifo|socket) while'
+
+	_unmount "$MNT_DIR"
+}
+
 # Create the prototype directory with various file types
 _create_proto_dir
 
@@ -157,12 +177,15 @@ echo "Test: XFS reproducible filesystem image creation"
 # Run three iterations
 hash1=$(_run_iteration 1)
 [ -z "$hash1" ] && _fail "Iteration 1 failed"
+_test_iteration 1
 
 hash2=$(_run_iteration 2)
 [ -z "$hash2" ] && _fail "Iteration 2 failed"
+_test_iteration 2
 
 hash3=$(_run_iteration 3)
 [ -z "$hash3" ] && _fail "Iteration 3 failed"
+_test_iteration 3
 
 # Verify all hashes match
 if [ "$hash1" = "$hash2" ] && [ "$hash2" = "$hash3" ]; then
