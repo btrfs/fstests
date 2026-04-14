@@ -1,0 +1,68 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 Christoph Hellwig.
+#
+# FS QA Test No. 669
+#
+# Test that mounts of zoned file systems on conventional devices don't create
+# more open zones than allowed when the last blocks in one or more zones have
+# been invalidated.
+#
+
+. ./common/preamble
+_begin_fstest auto quick zone
+
+_require_scratch_nocheck
+_require_odirect
+_require_non_zoned_device $SCRATCH_DEV
+
+open_zones=5
+blocks=16384
+bsize=4096
+
+zone_size_mib=$((blocks * bsize / 1024 / 1024))
+file_size_mib=$((zone_size_mib / 2))
+nr_files=$((open_zones * 3 - 1))
+
+echo "zone size: $zone_size_mib" >>$seqres.full
+echo "file size: $file_size_mib" >>$seqres.full
+echo "nr files: $nr_files" >>$seqres.full
+
+# don't use _scratch_mkfs/_scratch_mount to avoid injection a real RT device
+$MKFS_XFS_PROG -b size=${bsize} -r zoned=1,rgsize=${blocks}b \
+	$SCRATCH_DEV > "$seqres.full" 2>&1 || \
+		_notrun "Zoned mkfs not supported"
+_mount $SCRATCH_DEV $SCRATCH_MNT -o max_open_zones=${open_zones} || \
+	_notrun "Zoned allocator not supported"
+
+_has_fs_sysfs_attr $SCRATCH_DEV zoned/nr_open_zones || \
+	_notrun "This test requires /sys/fs/${FSTYP}/$SCRATCH_DEV/zoned/nr_open_zones"
+
+for i in $(seq 1 $nr_files); do
+	dd if=/dev/zero of=$SCRATCH_MNT/$i bs=1M count=$file_size_mib \
+		 oflag=direct > /dev/null 2>&1
+done
+
+# delete odd numbered files as they should be at the end of the zones
+for ((i = 0; i < $nr_files; i = $((i + 2)))); do
+	rm $SCRATCH_MNT/$((i + 1))
+done
+
+_scratch_unmount
+_mount $SCRATCH_DEV $SCRATCH_MNT -o max_open_zones=${open_zones}
+
+max_open=$(_get_fs_sysfs_attr $SCRATCH_DEV zoned/max_open_zones)
+nr_open=$(_get_fs_sysfs_attr $SCRATCH_DEV zoned/nr_open_zones)
+
+if [ ${max_open} -ne $((open_zones - 1)) ]; then
+	_fail "Test needs adjustments for multiple open GC zones"
+fi
+
+if [ ${nr_open} -gt ${max_open} ]; then
+	_fail "Too many open zones: $nr_open/$max_open"
+fi
+
+_scratch_unmount
+
+status=0
+exit
