@@ -1,0 +1,53 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 Western Digital Corporation.  All Rights Reserved.
+#
+# FS QA Test No. 793
+#
+# This test stresses garbage collection in zoned file systems by constantly
+# overwriting the same file. It is inspired by a reproducer for a btrfs bugfix.
+
+. ./common/preamble
+_begin_fstest auto quick zone
+
+. ./common/filter
+
+_require_scratch_size $((16 * 1024 * 1024))
+
+if [ -b "$SCRATCH_RTDEV" ]; then
+	zoned_dev=$SCRATCH_RTDEV
+else
+	zoned_dev=$SCRATCH_DEV
+fi
+
+_require_zoned_device "$zoned_dev"
+_require_command "$BLKZONE_PROG" blkzone
+
+# This test requires specific data space usage, skip if we have compression
+# enabled.
+_require_no_compress
+
+_fixed_by_fs_commit btrfs 7bcb04de982f \
+	"btrfs: zoned: cap delayed refs metadata reservation to avoid overcommit"
+_fixed_by_fs_commit btrfs 258e46a6385c \
+	"btrfs: zoned: move partially zone_unusable block groups to reclaim list"
+_fixed_by_fs_commit btrfs e2a7fd22378f \
+	"btrfs: zoned: add zone reclaim flush state for DATA space_info"
+
+_scratch_mkfs_sized $((16 * 1024 * 1024 * 1024)) &>>$seqres.full
+_scratch_mount
+
+# Overwrite the data "number of seq zones" times, this is arbitrarily chosen
+# but triggers the original bug reliably
+loops=$($BLKZONE_PROG report $zoned_dev | grep -c "SEQ_WRITE_REQUIRED")
+
+for (( i = 0; i < $loops; i++ )); do
+	dd if=/dev/zero of=$SCRATCH_MNT/test bs=1M count=1024 status=none
+	if [ $? -ne 0 ]; then
+		_fail "Failed writing on iteration $i"
+	fi
+done
+
+echo "Silence is golden"
+# success, all done
+_exit 0
