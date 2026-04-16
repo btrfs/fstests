@@ -1,0 +1,22 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2024-2026 Oracle.  All Rights Reserved.
+#
+# FS QA Test 008
+#
+# Test mount failure capture.  Test runners will have to look for the
+# 008.mountfail file in the results directory since ./check handles the
+# preservation.
+#
+. ./common/preamble
+_begin_fstest selftest
+
+_require_command "$WIPEFS_PROG" wipefs
+_require_scratch
+
+$WIPEFS_PROG -a $SCRATCH_DEV
+_scratch_mount &>> $seqres.full
+
+# success, all done
+status=0
+exit
