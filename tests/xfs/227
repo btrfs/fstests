@@ -78,13 +78,13 @@ create_attrs()
 create_data()
 {
 	local blocks=$1
-	local cmd_str
+	local cmd_args=()
 
 	for off in `seq $blocks -1 0`; do
-		cmd_str="-c \"resvsp $((off * 4096)) 4096\" $cmd_str"
+		cmd_args+=("-c" "resvsp $((off * 4096)) 4096")
 	done
 	$XFS_IO_PROG -f -c "truncate $((($blocks + 1) * 4096))" \
-			$cmd_str $2 >> seqres.full 2>&1
+			"${cmd_args[@]}" $2 >> $seqres.full 2>&1
 }
 
 # create the designated file with a certain number of attributes and a certain
