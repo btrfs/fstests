@@ -1,0 +1,168 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2026 Huawei.  All Rights Reserved.
+#
+# FS QA Test No. 794
+#
+# Test that extending a file past a non-block-aligned EOF correctly zero-fills
+# the gap [old_EOF, block_boundary), and that this zeroing persists through a
+# filesystem shutdown+remount cycle.
+#
+# Stale data beyond EOF can persist on disk when:
+# 1) append write data blocks are flushed before the on-disk file size update,
+#    and the system crashes in this window.
+# 2) concurrent append writeback and mmap writes persist non-zero data past EOF.
+#
+# Subsequent post-EOF operations (append write, fallocate, truncate up) must
+# zero-fill and persist the gap to prevent exposing stale data.
+#
+# The test pollutes the file's last physical block (via FIEMAP + raw device
+# write) with a sentinel pattern beyond i_size, then performs each extend
+# operation and verifies the gap is zeroed both in memory and on disk.
+#
+. ./common/preamble
+_begin_fstest auto quick rw shutdown fiemap prealloc
+
+. ./common/filter
+
+_require_scratch
+_require_block_device $SCRATCH_DEV
+_require_no_realtime
+_require_scratch_shutdown
+_require_metadata_journaling $SCRATCH_DEV
+
+# FIEMAP on Btrfs returns logical addresses within the filesystem's address
+# space, not physical device offsets. Writing to these offsets on $SCRATCH_DEV
+# would corrupt the filesystem in multi-device setups.
+_exclude_fs btrfs
+
+_require_xfs_io_command "fiemap"
+_require_xfs_io_command "falloc"
+_require_xfs_io_command "pwrite"
+_require_xfs_io_command "truncate"
+_require_xfs_io_command "sync_range"
+
+# Check that gap region [offset, offset+nbytes) is entirely zero
+_check_gap_zero()
+{
+	local file="$1"
+	local offset="$2"
+	local nbytes="$3"
+	local label="$4"
+	local data
+	local stripped
+
+	data=$(od -A n -t x1 -v -j $offset -N $nbytes "$file" 2>/dev/null)
+
+	# Remove whitespace and check if any byte is non-zero
+	stripped=$(printf '%s' "$data" | tr -d ' \n\t')
+	if [ -n "$stripped" ] && ! echo "$stripped" | grep -qE "^0+$"; then
+		echo "FAIL: non-zero data in gap [$offset,$((offset + nbytes))) $label"
+		_hexdump -N $((offset + nbytes)) "$file"
+		return 1
+	fi
+	return 0
+}
+
+# Get the physical block offset (in bytes) of the file's first block on device
+_get_phys_offset()
+{
+	local file="$1"
+	local fiemap_output
+	local phys_blk
+
+	fiemap_output=$($XFS_IO_PROG -r -c "fiemap -v" "$file" 2>/dev/null)
+	phys_blk=$(echo "$fiemap_output" | _filter_xfs_io_fiemap | head -1 | awk '{print $3}')
+	if [ -z "$phys_blk" ]; then
+		echo ""
+		return
+	fi
+	# Convert 512-byte blocks to bytes
+	echo $((phys_blk * 512))
+}
+
+_test_eof_zeroing()
+{
+	local test_name="$1"
+	local extend_cmd="$2"
+	local expected_new_sz="$3"
+	local file=$SCRATCH_MNT/testfile_${test_name}
+
+	echo "$test_name" | tee -a $seqres.full
+
+	# Compute non-block-aligned EOF offset
+	local gap_bytes=16
+	local eof_offset=$((blksz - gap_bytes))
+
+	# Step 1: Write one full block to ensure the filesystem allocates a
+	#         physical block for the file instead of using inline data.
+	$XFS_IO_PROG -f -c "pwrite -S 0x5a 0 $blksz" -c fsync \
+		"$file" >> $seqres.full 2>&1
+
+	# Step 2: Get physical block offset on device via FIEMAP
+	local phys_offset
+	phys_offset=$(_get_phys_offset "$file")
+	if [ -z "$phys_offset" ]; then
+		_fail "$test_name: failed to get physical block offset via fiemap"
+	fi
+
+	# Step 3: Truncate file to non-block-aligned size and fsync.
+	#         The on-disk region [eof_offset, blksz) may or may not be
+	#         zeroed by the filesystem at this point.
+	$XFS_IO_PROG -c "truncate $eof_offset" -c fsync \
+		"$file" >> $seqres.full 2>&1
+
+	# Step 4: Unmount and restore the physical block to all-0x5a on disk.
+	#         This bypasses the kernel's pagecache EOF-zeroing to ensure
+	#         the stale pattern is present on disk. Then remount.
+	_scratch_unmount
+	$XFS_IO_PROG -d -c "pwrite -S 0x5a $phys_offset $blksz" \
+		$SCRATCH_DEV >> $seqres.full 2>&1
+	if [ $? -ne 0 ]; then
+		_fail "$test_name: failed to inject stale data on disk"
+	fi
+	_scratch_mount >> $seqres.full 2>&1
+
+	# Step 5: Execute the extend operation.
+	$XFS_IO_PROG -c "$extend_cmd" "$file" >> $seqres.full 2>&1
+
+	# Step 6: Verify gap [eof_offset, blksz) is zeroed BEFORE shutdown
+	_check_gap_zero "$file" $eof_offset $gap_bytes "before shutdown" || return 1
+
+	# Step 7: Sync the extended range and shutdown the filesystem with
+	#         journal flush. This persists the file size extending, and
+	#         the filesystem should persist the zeroed data in the gap
+	#         range as well.
+	if [ "$extend_cmd" != "${extend_cmd#pwrite}" ]; then
+		$XFS_IO_PROG -c "sync_range -w $blksz $blksz" \
+			-c "sync_range -a $blksz $blksz" \
+			"$file" >> $seqres.full 2>&1
+	fi
+	_scratch_shutdown -f
+
+	# Step 8: Remount and verify gap is still zeroed
+	_scratch_cycle_mount
+
+	# Verify file size was not rolled back after shutdown+remount
+	local sz
+	sz=$(stat -c %s "$file")
+	if [ "$sz" -ne "$expected_new_sz" ]; then
+		_fail "$test_name: file size rolled back after shutdown+remount: $sz != $expected_new_sz"
+	fi
+
+	_check_gap_zero "$file" $eof_offset $gap_bytes "after shutdown+remount" || return 1
+}
+
+_scratch_mkfs >> $seqres.full 2>&1
+_scratch_mount
+
+blksz=$(_get_block_size $SCRATCH_MNT)
+
+# Test three variants of EOF-extending operations
+_test_eof_zeroing "append_write" "pwrite -S 0x42 $blksz $blksz" $((blksz * 2))
+_test_eof_zeroing "truncate_up" "truncate $((blksz * 2))" $((blksz * 2))
+_test_eof_zeroing "fallocate" "falloc $blksz $blksz" $((blksz * 2))
+
+# success, all done
+status=0
+exit
