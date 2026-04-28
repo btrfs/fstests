@@ -25,6 +25,7 @@ testfile=$SCRATCH_MNT/testfile
 
 # remove all mkfs options to avoid layout change of on-disk inode
 export MKFS_OPTIONS=""
+export MOUNT_OPTIONS=""
 
 _scratch_mkfs "-O extra_attr,flexible_inline_xattr" >> $seqres.full || _fail "mkfs failed"
 _scratch_mount "-o inline_xattr_size=512" >>$seqres.full 2>&1

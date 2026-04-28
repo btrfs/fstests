@@ -23,6 +23,7 @@ _require_inject_f2fs_command node i_nid
 
 # remove all mkfs options to avoid layout change of on-disk inode
 export MKFS_OPTIONS=""
+export MOUNT_OPTIONS=""
 
 foo_path=$SCRATCH_MNT/foo
 bar_path=$SCRATCH_MNT/bar
