@@ -11,6 +11,7 @@
 _begin_fstest auto quick zone
 
 . ./common/filter
+. ./common/zoned
 
 _require_scratch_size $((16 * 1024 * 1024))
 
@@ -34,12 +35,14 @@ _fixed_by_fs_commit btrfs 258e46a6385c \
 _fixed_by_fs_commit btrfs e2a7fd22378f \
 	"btrfs: zoned: add zone reclaim flush state for DATA space_info"
 
-_scratch_mkfs_sized $((16 * 1024 * 1024 * 1024)) &>>$seqres.full
+fssize=$((16 * 1024 * 1024 * 1024))
+_scratch_mkfs_sized ${fssize} &>>$seqres.full
 _scratch_mount
 
-# Overwrite the data "number of seq zones" times, this is arbitrarily chosen
+# Overwrite the data "number of zones in fs" times, this is arbitrarily chosen
 # but triggers the original bug reliably
-loops=$($BLKZONE_PROG report $zoned_dev | grep -c "SEQ_WRITE_REQUIRED")
+zsize=$(_zone_capacity 0 $zoned_dev)
+loops=$(( fssize/zsize))
 
 for (( i = 0; i < $loops; i++ )); do
 	dd if=/dev/zero of=$SCRATCH_MNT/test bs=1M count=1024 status=none
