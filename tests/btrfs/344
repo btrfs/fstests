@@ -13,8 +13,8 @@ _begin_fstest auto quick compress
 _require_scratch
 _require_btrfs_command inspect-internal dump-tree
 
-_fixed_by_kernel_commit xxxxxxxxxxxx \
-	"btrfs: do not mark inode incompressible after inline attempt failed"
+_fixed_by_kernel_commit 2e0e3716c7b6 \
+	"btrfs: do not mark inode incompressible after inline attempt fails"
 
 _scratch_mkfs >>$seqres.full 2>&1
 

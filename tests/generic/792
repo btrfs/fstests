@@ -25,7 +25,7 @@ _require_scratch
 _require_test_program unlink-fsync
 _require_dm_target flakey
 
-_fixed_by_fs_commit btrfs xxxxxxxxxxxx \
+_fixed_by_fs_commit btrfs 999757231c49 \
 	"btrfs: fix missing last_unlink_trans update when removing a directory"
 
 _scratch_mkfs >> $seqres.full 2>&1 || _fail "mkfs failed"

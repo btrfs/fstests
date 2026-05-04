@@ -13,7 +13,7 @@ _begin_fstest auto quick compress
 _require_scratch
 _require_btrfs_command inspect-internal dump-tree
 
-_fixed_by_kernel_commit xxxxxxxxxxxx \
+_fixed_by_kernel_commit 883adb6dcff0 \
 	"btrfs: fix the inline compressed extent check in inode_need_compress()"
 
 _scratch_mkfs >>$seqres.full 2>&1
