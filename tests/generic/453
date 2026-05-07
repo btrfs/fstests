@@ -233,6 +233,20 @@ setf "\xf0\x9f\xab\xb6\xf0\x9f\x8f\xbc" "medium light"
 setf "\xf0\x9f\xab\xb6\xf0\x9f\x8f\xbb" "light"
 setf "\xf0\x9f\xab\xb6" "neutral"
 
+# confusion with variation selectors
+setf "variations.txt" v0
+setf "varia\xef\xb8\x80tions.txt" v1
+setf "\xef\xb8\x80variations.txt" v2
+setf "vari\xef\xb8\x80\xef\xb8\x81ations.txt" v3
+setf "varia\xf3\xa0\x87\xa4tions.txt" v4
+
+# deprecated tags are considered control characters
+setf "tags_moocow.txt" u0
+setf "tags_m\xf3\xa0\x81\xadoocow.txt" u1
+
+# totally hidden name? "(Hi)" is the file name
+setf "\xf3\xa0\x80\xa8\xf3\xa0\x81\x88\xf3\xa0\x81\xa9\xf3\xa0\x80\xa9" "(Hi)"
+
 ls -laR $testdir >> $seqres.full
 
 echo "Test files"
@@ -331,6 +345,20 @@ testf "\xf0\x9f\xab\xb6\xf0\x9f\x8f\xbc" "medium light"
 testf "\xf0\x9f\xab\xb6\xf0\x9f\x8f\xbb" "light"
 testf "\xf0\x9f\xab\xb6" "neutral"
 
+# confusion with variation selectors
+testf "variations.txt" v0
+testf "varia\xef\xb8\x80tions.txt" v1
+testf "\xef\xb8\x80variations.txt" v2
+testf "vari\xef\xb8\x80\xef\xb8\x81ations.txt" v3
+testf "varia\xf3\xa0\x87\xa4tions.txt" v4
+
+# deprecated tags are considered control characters
+testf "tags_moocow.txt" u0
+testf "tags_m\xf3\xa0\x81\xadoocow.txt" u1
+
+# totally hidden name? "(Hi)" is the file name
+testf "\xf3\xa0\x80\xa8\xf3\xa0\x81\x88\xf3\xa0\x81\xa9\xf3\xa0\x80\xa9" "(Hi)"
+
 echo "Uniqueness of inodes?"
 stat -c '%i' "${testdir}/"* | sort | uniq -c | while read nr inum; do
 	if [ "${nr}" -gt 1 ]; then
@@ -366,6 +394,13 @@ if _check_xfs_scrub_does_unicode "$SCRATCH_MNT" "$SCRATCH_DEV"; then
 		grep -q "job offer.*could be confused with" $tmp.scrub || echo "No complaints about confusing job offers?"
 		grep -q "job offer.xe2.x80.xa4.xe2.x80.x8dpdf" $tmp.scrub || echo "No complaints about one dot leader with invisible space?"
 		grep -q "llamapirate" $tmp.scrub || echo "No complaints about hidden llm instructions in filenames?"
+	fi
+
+	if grep -q "variations" $tmp.scrub; then
+		grep -q 'varia.xef.xb8' $tmp.scrub || echo "No complaints about variation sequence confusion?"
+		grep -q 'varia.xf3.xa0' $tmp.scrub || echo "No complaints about extended variation sequence confusion?"
+		grep -q 'x80variations' $tmp.scrub || echo "No complaints about variations starting a name?"
+		grep -q 'tags_m.xf3.xa0.x81' $tmp.scrub || echo "No complaints about deprecated unicode tags in a name?"
 	fi
 
 	echo "Actual xfs_scrub output:" >> $seqres.full
