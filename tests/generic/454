@@ -168,6 +168,10 @@ setf "tags_m\xf3\xa0\x81\xadoocow.txt" u1
 # totally hidden name? "(Hi)" is the file name
 setf "\xf3\xa0\x80\xa8\xf3\xa0\x81\x88\xf3\xa0\x81\xa9\xf3\xa0\x80\xa9" "(Hi)"
 
+# Gedalya complained about being flagged for mixing Hebrew (RTL) and Latin
+# (LTR) codepoints in the same name.  This is a common practice.
+setf "\xd7\xa2\xd7\x91\xd7\xa8\xd7\x99\xd7\xaa.pdf" "mixed rtl and ltr chars?"
+
 _getfattr --absolute-names -d "${testfile}" >> $seqres.full
 
 echo "Test files"
@@ -256,6 +260,10 @@ testf "tags_m\xf3\xa0\x81\xadoocow.txt" u1
 
 # totally hidden name? "(Hi)" is the file name
 testf "\xf3\xa0\x80\xa8\xf3\xa0\x81\x88\xf3\xa0\x81\xa9\xf3\xa0\x80\xa9" "(Hi)"
+#
+# Gedalya complained about being flagged for mixing Hebrew (RTL) and Latin
+# (LTR) codepoints in the same name.  This is a common practice.
+testf "\xd7\xa2\xd7\x91\xd7\xa8\xd7\x99\xd7\xaa.pdf" "mixed rtl and ltr chars?"
 
 echo "Uniqueness of keys?"
 crazy_keys="$(_getfattr --absolute-names -d "${testfile}" | grep -E -c '(french_|chinese_|greek_|arabic_|urk)')"
@@ -284,6 +292,8 @@ if _check_xfs_scrub_does_unicode "$SCRATCH_MNT" "$SCRATCH_DEV"; then
 		grep -q 'x80variations' $tmp.scrub || echo "No complaints about variations starting a name?"
 		grep -q 'tags_m.xf3.xa0.x81' $tmp.scrub || echo "No complaints about deprecated unicode tags in a name?"
 	fi
+
+	grep -q 'mixes bidirectional characters' $tmp.scrub && echo "Unnecessary complaints about mixed bidi characters in a name?"
 
 	echo "Actual xfs_scrub output:" >> $seqres.full
 	echo "${output}" >> $seqres.full
