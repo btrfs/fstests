@@ -14,6 +14,22 @@ _require_log_writes()
 	_require_test_program "log-writes/replay-log"
 }
 
+# Require a log writes device of a minimum size
+# $1: minimum size in KB
+_require_log_writes_sized()
+{
+	local size=$1
+	local devsize
+
+	[ $# -eq 1 ] || _fail "_require_log_writes_sized: expected size param"
+
+	_require_log_writes
+
+	devsize=$(_get_device_size $LOGWRITES_DEV)
+	[ $devsize -lt $size ] && \
+		_notrun "LOGWRITES_DEV too small, ${devsize}KB < ${size}KB"
+}
+
 # Starting from v4.15-rc1, DAX support was added to dm-log-writes, but note
 # that it doesn't track the data that we write via the mmap(), so we can't do
 # any data integrity checking. We can only verify that the metadata writes for
