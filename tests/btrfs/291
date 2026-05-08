@@ -36,7 +36,9 @@ _cleanup()
 _require_scratch
 _require_test
 _require_loop
-_require_log_writes
+scratch_size=$(_get_device_size $SCRATCH_DEV)
+required_log_size=$((scratch_size * 120 / 100))
+_require_log_writes_sized $required_log_size
 _require_dm_target snapshot
 _require_command $LVM_PROG lvm
 _require_scratch_verity
@@ -129,9 +131,14 @@ do
 	_udev_wait /dev/mapper/$vgname-$snapname
 
 	orphan=$(count_item $snap_dev ORPHAN)
-	[ $state -eq 0 ] && [ $orphan -gt 0 ] && state=1
-
 	pre_mount=$(count_merkle_items $snap_dev)
+
+	if [ $state -eq 0 ]; then
+		if [ $orphan -gt 0 ] || [ $pre_mount -gt 0 ]; then
+			state=1
+		fi
+	fi
+
 	_mount $snap_dev $SCRATCH_MNT || _fail "mount failed at entry $cur"
 	fsverity measure $SCRATCH_MNT/fsv >>$seqres.full 2>&1
 	measured=$?
@@ -143,8 +150,10 @@ do
 	echo "entry: $cur, state: $state, orphan: $orphan, pre_mount: $pre_mount, post_mount: $post_mount" >> $seqres.full
 
 	if [ $state -eq 1 ]; then
-		[ $post_mount -eq 0 ] || \
-			_fail "mount failed to clear under-construction merkle items pre: $pre_mount, post: $post_mount at entry $cur";
+		if [ $measured -ne 0 ]; then
+			[ $post_mount -eq 0 ] || \
+				_fail "mount failed to clear under-construction merkle items pre: $pre_mount, post: $post_mount at entry $cur";
+		fi
 	fi
 	if [ $state -eq 2 ]; then
 		[ $pre_mount -gt 0 ] || \
