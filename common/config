@@ -103,7 +103,7 @@ set_mkfs_prog_path_with_opts()
 	# Note: mkfs.f2fs doesn't support the --help option yet, but it doesn't
 	# matter since it also prints the help when an invalid option is given.
 	if [ "$p" != "" ] && \
-		$p --help |& grep -q "[[:space:]]-f[[:space:]|,]"; then
+		$p --help |& grep -q "[[:space:]]*-f[[:space:]|,]"; then
 		echo "$p -f"
 	else
 		echo $p
