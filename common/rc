@@ -6234,6 +6234,16 @@ _require_fanotify_ioerrors()
 	_notrun "$FSTYP does not support fanotify ioerrors"
 }
 
+# Computes a percentage of the available space in a filesystem and
+# returns that quantity in MB. The percentage must not contain a percent
+# sign ("%").
+# usage example:
+# _mb_pct_of_available_space <mount point> <percent>
+#
+_mb_pct_of_available_space()
+{
+        _df_device $1 | $AWK_PROG -v pct=$2 '{printf "%.f", (($5*(pct/100))/1024)}'
+}
 ################################################################################
 # make sure this script returns success
 /bin/true
