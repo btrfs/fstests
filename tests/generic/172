@@ -37,15 +37,15 @@ echo "Reformat with appropriate size"
 blksz="$(_get_block_size $testdir)"
 _scratch_unmount
 
-file_size=$((768 * 1024 * 1024))
 fs_size=$((1024 * 1024 * 1024))
 _scratch_mkfs_sized $fs_size >> $seqres.full 2>&1
 _scratch_mount >> $seqres.full 2>&1
 rm -rf $testdir
 mkdir $testdir
+file_size=`_mb_pct_of_available_space $SCRATCH_DEV 70`
 
 echo "Create a big file and reflink it"
-_pwrite_byte 0x61 0 $file_size $testdir/bigfile >> $seqres.full 2>&1
+_pwrite_byte 0x61 0 ${file_size}m $testdir/bigfile >> $seqres.full 2>&1
 _cp_reflink $testdir/bigfile $testdir/clonefile
 _scratch_sync
 
@@ -54,7 +54,7 @@ _fill_fs $fs_size  $testdir/space $blksz 0 >> $seqres.full 2>&1
 _scratch_sync
 
 echo "CoW the big file"
-out="$(_pwrite_byte 0x62 0 $file_size $testdir/bigfile 2>&1 | \
+out="$(_pwrite_byte 0x62 0 ${file_size}m $testdir/bigfile 2>&1 | \
 	_filter_xfs_io_error)"
 echo ${out} | grep -q "No space left on device" || echo "CoW should have failed with ENOSPC"
 echo ${out} >> $seqres.full 2>&1
@@ -63,7 +63,7 @@ echo ${out}
 echo "Remount and try CoW again"
 _scratch_cycle_mount
 
-out="$(_pwrite_byte 0x62 0 $file_size $testdir/bigfile 2>&1 | \
+out="$(_pwrite_byte 0x62 0 ${file_size}m $testdir/bigfile 2>&1 | \
 	_filter_xfs_io_error)"
 echo ${out} | grep -q "No space left on device" || echo "CoW should have failed with ENOSPC"
 echo ${out} >> $seqres.full 2>&1

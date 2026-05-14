@@ -14,6 +14,13 @@ BACKING_SIZE=$((500 * 1024 * 1024 / 512))	# 500M
 VIRTUAL_SIZE=$((10 * $BACKING_SIZE))		# 5000M
 GROW_SIZE=$((100 * 1024 * 1024 / 512))		# 100M
 
+dmthin_mkfs_opts=""
+if [ $FSTYP == "xfs" ]; then
+	if _scratch_mkfs_xfs_supports_concurrency -l >> $seqres.full 2>&1; then
+		dmthin_mkfs_opts="-l concurrency=0"
+	fi
+fi
+
 # Override the default cleanup function.
 _cleanup()
 {
@@ -25,7 +32,7 @@ _setup_thin()
 {
 	_dmthin_init $BACKING_SIZE $VIRTUAL_SIZE
 	_dmthin_set_queue
-	_dmthin_mkfs
+	_dmthin_mkfs $dmthin_mkfs_opts
 	_dmthin_mount
 }
 
