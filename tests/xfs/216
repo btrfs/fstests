@@ -22,13 +22,17 @@ _cleanup()
 
 _require_scratch
 _scratch_mkfs_xfs >/dev/null 2>&1
+if _scratch_mkfs_xfs_supports_concurrency -l >> $seqres.full 2>&1; then
+	loop_mkfs_opts="-l concurrency=0"
+else
+	loop_mkfs_opts=""
+fi
 _scratch_mount
 
 _require_loop
 LOOP_IMG=$SCRATCH_MNT/test_fs
 LOOP_MNT=$SCRATCH_MNT/test_fs_dir
 
-loop_mkfs_opts=
 $MKFS_XFS_PROG 2>&1 | grep -q rmapbt && \
 	loop_mkfs_opts="$loop_mkfs_opts -m rmapbt=0"
 $MKFS_XFS_PROG 2>&1 | grep -q reflink && \

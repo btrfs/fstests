@@ -21,6 +21,11 @@ _cleanup()
 
 _require_scratch
 _scratch_mkfs_xfs >/dev/null 2>&1
+if _scratch_mkfs_xfs_supports_concurrency -l >> $seqres.full 2>&1; then
+	loop_mkfs_opts="-l concurrency=0 -d concurrency=0"
+else
+	loop_mkfs_opts=""
+fi
 _scratch_mount
 # 16T mkfs requires a bit over 2G free
 _require_fs_space $SCRATCH_MNT 2202000
@@ -34,7 +39,7 @@ _do_mkfs()
 	for i in $*; do
 		echo -n "fssize=${i}g "
 		$MKFS_XFS_PROG -f -b size=4096 -l version=2 \
-			-d size=${i}g $loop_dev |grep log
+			-d size=${i}g $loop_dev $loop_mkfs_opts |grep log
 		_mount $loop_dev $LOOP_MNT
 		echo "test write" > $LOOP_MNT/test
 		_unmount $LOOP_MNT > /dev/null 2>&1
